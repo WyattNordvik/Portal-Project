@@ -2,7 +2,7 @@
 export default function TestIcon() {
   return (
     <svg
-      className="h-6 w-6 text-green-600"
+      className="h-6 w-6 text-green-600 inline-block"
       viewBox="0 0 24 24"
       fill="currentColor"
     >
