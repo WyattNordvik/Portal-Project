@@ -4,6 +4,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import formidable from "formidable";
 import { prisma } from "@/lib/db";
 import { uploadFile } from "@/lib/s3";
+import { sendEmail } from "@/lib/email";
 
 // Disable Next.js default body parser for file uploads
 export const config = { api: { bodyParser: false } };
@@ -65,6 +66,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       },
     });
+
+	// ... inside the successful upload block, after analytics:
+	const allUsers = await prisma.user.findMany({ select: { id: true } });
+	const notifMessage = `New file uploaded: ${record.filename}`;
+
+	await Promise.all(
+		allUsers.map(({ id: uid }) =>
+		prisma.notification.create({
+			data: {
+				userId: uid,
+				type: "file_upload",
+				message: notifMessage,
+				metadata: { fileId: record.id },
+				},
+			})
+		)
+	);	
+
+	const admins = await prisma.userRole.findMany({
+		where: { role: { name: "admin" } },
+		include: { user: true },
+});
+for (const { user } of admins) {
+  await sendEmail(
+    user.email,
+    "New File Uploaded",
+    `<p>A new file <strong>${record.filename}</strong> was just uploaded.</p>`
+  );
+}
 
     return res.status(201).json(record);
   } catch (err: any) {

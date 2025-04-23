@@ -3,6 +3,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { getServerSession }   from "next-auth/next";
 import { authOptions }        from "@/pages/api/auth/[...nextauth]";
 import { prisma }             from "@/lib/db";
+import { sendEmail } from "@/lib/email";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // 1) Protect the route
@@ -30,6 +31,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         createdBy: userId,
       },
     });
+	// after creating the event:
+	const allUsers = await prisma.user.findMany({ select: { id: true } });
+	const notifMessage = `New event created: ${event.title}`;
+
+	await Promise.all(
+		allUsers.map(({ id: uid }) =>
+			prisma.notification.create({
+				data: {
+					userId: uid,
+					type: "event_created",
+					message: notifMessage,
+					metadata: { eventId: event.id },
+				},
+			})
+		)
+	);
+
+	const admins = await prisma.userRole.findMany({
+		where: { role: { name: "admin" } },
+		include: { user: true },
+});
+for (const { user } of admins) {
+  await sendEmail(
+    user.email,
+    "New Event Created",
+    `<p>A new event <strong>${event.title}</strong> was just scheduled from ${new Date(event.start).toLocaleString()} to ${new Date(event.end).toLocaleString()}.</p>`
+  );
+}
+
     return res.status(201).json(event);
   }
 
