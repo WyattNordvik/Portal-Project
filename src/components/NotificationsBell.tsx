@@ -14,7 +14,7 @@ export default function NotificationsBell() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [open, setOpen]     = useState(false);
 
-  // Fetch notifications any time you open
+  // Fetch when opened
   useEffect(() => {
     if (open) {
       fetch("/api/notifications")
@@ -25,8 +25,6 @@ export default function NotificationsBell() {
   }, [open]);
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
-
-  // Mark all as read
   const markAllRead = async () => {
     const ids = notifs.filter((n) => !n.isRead).map((n) => n.id);
     if (!ids.length) return;
@@ -38,19 +36,15 @@ export default function NotificationsBell() {
     setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
-  const toggleOpen = () => {
-    setOpen((o) => !o);
-    if (!open) markAllRead();
-  };
-
   return (
     <div className="relative inline-block text-left">
-      {/* Bell button */}
       <button
-        onClick={toggleOpen}
+        onClick={() => {
+          setOpen((o) => !o);
+          if (!open) markAllRead();
+        }}
         className="relative p-2 focus:outline-none"
       >
-        {/* Explicit width/height ensures correct sizing */}
         <BellIcon width={24} height={24} className="text-gray-700" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">
@@ -59,9 +53,8 @@ export default function NotificationsBell() {
         )}
       </button>
 
-      {/* Dropdown */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-64 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
+        <div className="absolute top-full right-2 mt-2 w-64 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
           <div className="p-2 border-b flex justify-between items-center">
             <span className="font-semibold">Notifications</span>
             <button className="text-sm text-blue-600" onClick={markAllRead}>
@@ -77,7 +70,7 @@ export default function NotificationsBell() {
                 key={n.id}
                 className={`p-3 border-b ${n.isRead ? "bg-white" : "bg-blue-50"}`}
               >
-                <p className="text-sm">{n.message}</p>
+                <p className="text-sm break-words">{n.message}</p>
                 <p className="text-xs text-gray-400">
                   {new Date(n.createdAt).toLocaleString()}
                 </p>
