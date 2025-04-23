@@ -45,12 +45,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const url = await uploadFile(key, data);
 
     // Save metadata
-    const userId = fields.userId;
+    const rawUserId = fields.userId;
+	const userId = 
+		Array.isArray(rawUserId) ? rawUserId[0] : rawUserId ?? "";
+	if (!userId) {
+		return res.status(400).json({ error: "Missing userId" });
+	}
     const record = await prisma.file.create({
       data: {
         filename: uploaded.originalFilename || key,
         url,
-        uploadedBy: userId || "",
+        uploadedBy: userId,
       },
     });
 

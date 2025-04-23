@@ -17,3 +17,11 @@ model User {
   createdAt    DateTime @default(now())
 }
 
+model File {
+	id			String	@id @default(cuid())
+	filename	String
+	url			String
+	uploadedBy	String
+	createdAt	DateTime @default(now())
+}
+
