@@ -1,5 +1,4 @@
 "use client";
-
 import { SessionProvider } from "next-auth/react";
 import NotificationsBell from "@/components/NotificationsBell";
 import type { ReactNode } from "react";
@@ -7,11 +6,19 @@ import type { ReactNode } from "react";
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <SessionProvider>
-      {/* This header (and the bell) now live inside a client component */}
-      <header className="flex justify-end p-4 border-b">
-        <NotificationsBell />
-      </header>
-      {children}
+      <div className="min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="w-full bg-white border-b shadow-sm">
+          <div className="max-w-7xl mx-auto flex justify-end items-center p-4">
+            <NotificationsBell />
+          </div>
+        </header>
+
+        {/* Main content */}
+        <main className="flex-grow">
+          {children}
+        </main>
+      </div>
     </SessionProvider>
   );
 }
