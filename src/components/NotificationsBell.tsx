@@ -54,7 +54,22 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute top-full right-2 mt-2 w-64 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
+		  <div 
+			className="
+				absolute
+				top-full
+				right-0
+				mt-2
+				w-56
+				max-w-xs
+				overflow-y-auto
+				bg-white
+				border
+				rounded
+				shadow-lg
+				z-50
+			  "
+			>
           <div className="p-2 border-b flex justify-between items-center">
             <span className="font-semibold">Notifications</span>
             <button className="text-sm text-blue-600" onClick={markAllRead}>
