@@ -41,3 +41,11 @@ model File {
 	createdAt	DateTime @default(now())
 }
 
+model AnalyticsEvent {
+	id			String	@id @default(cuid())
+	userId		String
+	action		String
+	metadata	Json?
+	createdAt	DateTime @default(now())
+}
+

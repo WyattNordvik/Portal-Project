@@ -57,6 +57,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         url,
         uploadedBy: userId,
       },
+	await prisma.analyticsEvent.create({
+		data: {
+		userId,
+		action: "file_upload",
+		metadata: { fileId: record.id, filename: record.filename },
+	  },
     });
 
     return res.status(201).json(record);
