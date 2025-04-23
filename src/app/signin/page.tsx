@@ -16,7 +16,11 @@ export default function SignIn() {
     setError(null);
     const res = await signIn("credentials", { redirect: false, email, password });
     if (res?.error) {
-      setError(res.error);
+		const friendly =
+			res.error === "CredentialsSignin"
+				? "Invalid email or password."
+				: res.error;
+      setError(friendly);
     } else {
       router.push("/dashboard");
     }
