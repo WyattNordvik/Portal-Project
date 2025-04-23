@@ -36,6 +36,9 @@ export default function Calendar() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [currentView, setCurrentView] = useState<View>("week");
+  
   // Modal state
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
@@ -164,6 +167,10 @@ export default function Calendar() {
         endAccessor="end"
         selectable
         style={{ height: 600 }}
+		date={currentDate}
+		view={currentView}
+		onNavigate={(date) => setCurrentDate(date)}
+		onView={(view) => setCurrentView(view)}
         onSelectSlot={handleSelectSlot}
         onSelectEvent={handleSelectEvent}
       />
