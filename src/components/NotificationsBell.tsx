@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { BellIcon } from "@heroicons/react/24/outline";
 
@@ -13,26 +14,27 @@ export default function NotificationsBell() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [open, setOpen]     = useState(false);
 
-  const fetchNotifs = async () => {
-    const res = await fetch("/api/notifications");
-    if (res.ok) setNotifs(await res.json());
-  };
-
+  // Fetch notifications whenever the dropdown is opened
   useEffect(() => {
-    if (open) fetchNotifs();
+    if (open) {
+      fetch("/api/notifications")
+        .then((res) => (res.ok ? res.json() : []))
+        .then((data) => setNotifs(data))
+        .catch(console.error);
+    }
   }, [open]);
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
+
   const markAllRead = async () => {
     const ids = notifs.filter((n) => !n.isRead).map((n) => n.id);
-    if (ids.length) {
-      await fetch("/api/notifications", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids }),
-      });
-      setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
-    }
+    if (ids.length === 0) return;
+    await fetch("/api/notifications", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
   return (
