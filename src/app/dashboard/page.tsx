@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import FileUpload from "@/components/FileUpload";
 
 export default async function Dashboard() {
   const session = await getServerSession(authOptions);
@@ -14,7 +15,12 @@ export default async function Dashboard() {
       <h1 className="text-3xl font-bold mb-4">
         Welcome back, {session.user?.name || session.user?.email}!
       </h1>
-      {/* TODO: Add dashboard widgets here */}
+      {/* put the upload UI here */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Upload Resources</h2>
+        <FileUpload />
+      </section>
+	  {/* TODO: Add dashboard widgets here */}
     </div>
   );
 }
