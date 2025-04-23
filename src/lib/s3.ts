@@ -1,42 +1,51 @@
+
 // src/lib/s3.ts
-import {
-  S3Client,
-  PutObjectCommand,
-  DeleteObjectCommand,
-} from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
-const endpoint = new URL(process.env.SPACES_ENDPOINT!);
+// Use the endpoint URL as a string
+const endpointUrl = process.env.SPACES_ENDPOINT!;
+// Parse it into a URL object to extract hostname
+const endpointObj = new URL(endpointUrl);
+// Region is the first segment of the hostname, e.g. 'nyc3' from 'nyc3.digitaloceanspaces.com'
+const region = endpointObj.hostname.split(".")[0];
 
-const s3 = new S3Client({
-  endpoint,                                    // point at Spaces
-  region: endpoint.hostname.split(".")[1],     // e.g. "nyc3"
+// Initialize the S3-compatible client with DigitalOcean Spaces endpoint
+export const s3 = new S3Client({
+  endpoint: endpointUrl,
+  region,
   credentials: {
     accessKeyId: process.env.SPACES_KEY!,
     secretAccessKey: process.env.SPACES_SECRET!,
   },
 });
 
-const BUCKET = process.env.SPACES_BUCKET!;
+export const BUCKET = process.env.SPACES_BUCKET!;
 
-export async function uploadFile(key: string, body: Uint8Array | Buffer) {
+/** Uploads a Buffer or Uint8Array to Spaces and returns the public URL */
+export async function uploadFile(key: string, body: Buffer | Uint8Array) {
   await s3.send(
     new PutObjectCommand({
       Bucket: BUCKET,
       Key: key,
       Body: body,
-      ACL: "public-read",       // or omit if private
+      ACL: "public-read",
     })
   );
-  return `${process.env.SPACES_ENDPOINT}/${BUCKET}/${key}`;
+  return `${endpointUrl}/${BUCKET}/${key}`;
 }
 
+/** Deletes an object from Spaces */
 export async function deleteFile(key: string) {
   await s3.send(
-    new DeleteObjectCommand({ Bucket: BUCKET, Key: key })
+    new DeleteObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+    })
   );
 }
 
+/** Returns the public URL for a given key */
 export function getFileUrl(key: string) {
-  return `${process.env.SPACES_ENDPOINT}/${BUCKET}/${key}`;
+  return `${endpointUrl}/${BUCKET}/${key}`;
 }
 
