@@ -84,18 +84,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		)
 	);	
 
-	const admins = await prisma.userRole.findMany({
-		where: { role: { name: "admin" } },
-		include: { user: true },
+	const admins = await prisma.user.findMany({
+  where: {
+    roles: {
+      some: {
+        role: {
+          name: "admin",
+        },
+      },
+    },
+  },
 });
-for (const { user } of admins) {
+
+// now `admins` is an array of full User objects
+for (const user of admins) {
   await sendEmail(
     user.email,
     "New File Uploaded",
     `<p>A new file <strong>${record.filename}</strong> was just uploaded.</p>`
   );
 }
-
     return res.status(201).json(record);
   } catch (err: any) {
     console.error("Upload handler error:", err);

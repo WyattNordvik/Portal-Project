@@ -1,3 +1,4 @@
+// src/components/NotificationsBell.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -14,25 +15,23 @@ export default function NotificationsBell() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [open, setOpen]     = useState(false);
 
-  // Fetch notifications whenever the dropdown is opened
   useEffect(() => {
     if (open) {
       fetch("/api/notifications")
         .then((res) => (res.ok ? res.json() : []))
-        .then((data) => setNotifs(data))
+        .then(setNotifs)
         .catch(console.error);
     }
   }, [open]);
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
-
   const markAllRead = async () => {
     const ids = notifs.filter((n) => !n.isRead).map((n) => n.id);
-    if (ids.length === 0) return;
+    if (!ids.length) return;
     await fetch("/api/notifications", {
-      method: "POST",
+      method:  "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ids }),
+      body:    JSON.stringify({ ids }),
     });
     setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
@@ -55,23 +54,24 @@ export default function NotificationsBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-72 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
+        <div className="absolute right-0 top-full mt-2 w-64 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
           <div className="p-2 border-b flex justify-between items-center">
             <span className="font-semibold">Notifications</span>
-            <button
-              className="text-sm text-blue-600"
-              onClick={markAllRead}
-            >
+            <button className="text-sm text-blue-600" onClick={markAllRead}>
               Mark all read
             </button>
           </div>
           {notifs.length === 0 ? (
-            <p className="p-4 text-center text-gray-500">No notifications</p>
+            <p className="p-4 text-center text-gray-500">
+              No notifications
+            </p>
           ) : (
             notifs.map((n) => (
               <div
                 key={n.id}
-                className={`p-3 border-b ${n.isRead ? "bg-white" : "bg-blue-50"}`}
+                className={`p-3 border-b ${
+                  n.isRead ? "bg-white" : "bg-blue-50"
+                }`}
               >
                 <p className="text-sm">{n.message}</p>
                 <p className="text-xs text-gray-400">

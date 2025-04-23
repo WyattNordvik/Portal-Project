@@ -12,21 +12,12 @@ export const metadata: Metadata = {
   description: "Your project description",
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }) {
   return (
-    <html lang="en">
-      {/* Only one <body> in the entire tree */}
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}>
-        {/* Wrap the whole tree in SessionProvider */}
-        <Providers>
-			{children}
-		</Providers>
+    <html lang="en" className="overflow-x-hidden">
+      <body className="antialiased">
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
 }
-
