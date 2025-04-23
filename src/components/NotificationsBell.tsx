@@ -58,9 +58,10 @@ export default function NotificationsBell() {
 			className="
 				absolute
 				top-full
-				right-0
+				right-full
+				mr-2
 				mt-2
-				w-56
+				w-64
 				max-w-xs
 				overflow-y-auto
 				bg-white
