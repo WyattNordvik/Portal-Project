@@ -10,5 +10,6 @@ export default async function AdminPage() {
     redirect("/signin");
   }
   // Optionally check for "admin" role server-side here
-  return <AdminPanel />;
+  return <AdminPanel />;L
 }
+

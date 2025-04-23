@@ -18,7 +18,7 @@ export default async function Dashboard() {
       </h1>
       {/* put the upload UI here */}
 	  <section>
-		<h2 classname="text-2xl font-semibold mb-4">Upload Resources</h2>
+		<h2 className="text-2xl font-semibold mb-4">Upload Resources</h2>
 		<FileUpload />
 	  </section>
 	  <section>
