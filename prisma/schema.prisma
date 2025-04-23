@@ -49,3 +49,13 @@ model AnalyticsEvent {
 	createdAt	DateTime @default(now())
 }
 
+model Event {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  start       DateTime
+  end         DateTime
+  createdBy   String
+  createdAt   DateTime @default(now())
+}
+

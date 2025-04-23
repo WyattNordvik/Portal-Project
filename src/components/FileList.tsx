@@ -1,4 +1,6 @@
+// src/components/FileList.tsx
 "use client";
+
 import { useEffect, useState } from "react";
 
 type FileRecord = {
@@ -25,6 +27,11 @@ export default function FileList() {
       .finally(() => setLoading(false));
   }, []);
 
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/files/delete?id=${id}`, { method: "DELETE" });
+    setFiles(files.filter((f) => f.id !== id));
+  };
+
   if (loading) return <p>Loading files…</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
   if (files.length === 0) return <p>No files uploaded yet.</p>;
@@ -41,12 +48,14 @@ export default function FileList() {
           >
             {f.filename}
           </a>
-          <span className="text-sm text-gray-500">
-            {new Date(f.createdAt).toLocaleString()}
-          </span>
+          <button
+            onClick={() => handleDelete(f.id)}
+            className="text-red-600 hover:underline"
+          >
+            Delete
+          </button>
         </li>
       ))}
     </ul>
   );
 }
-

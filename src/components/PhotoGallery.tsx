@@ -1,3 +1,4 @@
+// src/components/PhotoGallery.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -19,19 +20,25 @@ export default function PhotoGallery() {
 
   useEffect(() => {
     fetch("/api/files/list")
-      .then(res => {
+      .then((res) => {
         if (!res.ok) throw new Error("Failed to fetch files");
         return res.json();
       })
       .then((data: FileRecord[]) => {
-        const imgs = data.filter(f =>
-          imageExtensions.some(ext => f.filename.toLowerCase().endsWith(ext))
+        setImages(
+          data.filter((f) =>
+            imageExtensions.some((ext) => f.filename.toLowerCase().endsWith(ext))
+          )
         );
-        setImages(imgs);
       })
-      .catch(e => setError(e.message))
+      .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }, []);
+
+  const handleDelete = async (id: string) => {
+    await fetch(`/api/files/delete?id=${id}`, { method: "DELETE" });
+    setImages(images.filter((img) => img.id !== id));
+  };
 
   if (loading) return <p>Loading gallery…</p>;
   if (error) return <p className="text-red-500">Error: {error}</p>;
@@ -41,14 +48,21 @@ export default function PhotoGallery() {
     <div>
       <h1 className="text-3xl font-bold mb-6">Photo Gallery</h1>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-        {images.map(img => (
-          <img
-            key={img.id}
-            src={img.url}
-            alt={img.filename}
-            className="cursor-pointer object-cover w-full h-40 rounded"
-            onClick={() => setLightbox(img.url)}
-          />
+        {images.map((img) => (
+          <div key={img.id} className="relative">
+            <img
+              src={img.url}
+              alt={img.filename}
+              className="cursor-pointer object-cover w-full h-40 rounded"
+              onClick={() => setLightbox(img.url)}
+            />
+            <button
+              onClick={() => handleDelete(img.id)}
+              className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full"
+            >
+              &times;
+            </button>
+          </div>
         ))}
       </div>
 
