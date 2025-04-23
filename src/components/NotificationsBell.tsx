@@ -1,8 +1,7 @@
-// src/components/NotificationsBell.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { BellIcon } from "@heroicons/react/24/outline";
+import { BellIcon }            from "@heroicons/react/24/outline";
 
 type Notification = {
   id: string;
@@ -15,6 +14,7 @@ export default function NotificationsBell() {
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [open, setOpen]     = useState(false);
 
+  // Fetch notifications any time you open
   useEffect(() => {
     if (open) {
       fetch("/api/notifications")
@@ -25,6 +25,8 @@ export default function NotificationsBell() {
   }, [open]);
 
   const unreadCount = notifs.filter((n) => !n.isRead).length;
+
+  // Mark all as read
   const markAllRead = async () => {
     const ids = notifs.filter((n) => !n.isRead).map((n) => n.id);
     if (!ids.length) return;
@@ -36,16 +38,20 @@ export default function NotificationsBell() {
     setNotifs((prev) => prev.map((n) => ({ ...n, isRead: true })));
   };
 
+  const toggleOpen = () => {
+    setOpen((o) => !o);
+    if (!open) markAllRead();
+  };
+
   return (
     <div className="relative inline-block text-left">
+      {/* Bell button */}
       <button
-        className="p-2 focus:outline-none"
-        onClick={() => {
-          setOpen((o) => !o);
-          if (!open) markAllRead();
-        }}
+        onClick={toggleOpen}
+        className="relative p-2 focus:outline-none"
       >
-        <BellIcon className="h-6 w-6 text-gray-700" />
+        {/* Explicit width/height ensures correct sizing */}
+        <BellIcon width={24} height={24} className="text-gray-700" />
         {unreadCount > 0 && (
           <span className="absolute -top-1 -right-1 inline-flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-xs text-white">
             {unreadCount}
@@ -53,6 +59,7 @@ export default function NotificationsBell() {
         )}
       </button>
 
+      {/* Dropdown */}
       {open && (
         <div className="absolute right-0 top-full mt-2 w-64 max-w-xs overflow-y-auto bg-white border rounded shadow-lg z-50">
           <div className="p-2 border-b flex justify-between items-center">
@@ -61,17 +68,14 @@ export default function NotificationsBell() {
               Mark all read
             </button>
           </div>
+
           {notifs.length === 0 ? (
-            <p className="p-4 text-center text-gray-500">
-              No notifications
-            </p>
+            <p className="p-4 text-center text-gray-500">No notifications</p>
           ) : (
             notifs.map((n) => (
               <div
                 key={n.id}
-                className={`p-3 border-b ${
-                  n.isRead ? "bg-white" : "bg-blue-50"
-                }`}
+                className={`p-3 border-b ${n.isRead ? "bg-white" : "bg-blue-50"}`}
               >
                 <p className="text-sm">{n.message}</p>
                 <p className="text-xs text-gray-400">
