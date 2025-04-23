@@ -1,4 +1,3 @@
-// src/components/TestIcon.tsx
 "use client";
 export default function TestIcon() {
   return (
