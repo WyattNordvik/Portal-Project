@@ -71,3 +71,13 @@ model Notification {
   @@index([userId, isRead])
 }
 
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String   /// who performed the action
+  action    String   /// e.g. "bulk_import", "user_created", "role_updated"
+  metadata  Json?    /// any extra data (e.g. count of users imported)
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
