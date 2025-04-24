@@ -49,7 +49,16 @@ export default function FooterNav() {
                 └── audit
               </Link>
             </li>
-          
+         <li>
+			<Link href="/signin" className="hover:underline">
+				Sign in
+			</Link>
+		 </li> 
+		 <li>
+			<Link href="register" className="hover:underline">
+				Sign Up
+			</Link>
+		 </li>
       </ul>
     </nav>
   );
