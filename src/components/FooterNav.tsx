@@ -8,72 +8,80 @@ export default function FooterNav() {
       <ul className="font-mono text-sm text-gray-700 space-y-1">
         <li>
           <Link href="/dashboard" className="hover:underline">
-            📁 dashboard
+            📁 Dashboard
           </Link>
         </li>
-
         <li>
-          library
-          <ul className="pl-4 space-y-1">
             <li>
               <Link href="/resources" className="hover:underline">
-                ├── photo-gallery
+                ├── Photo Gallery
               </Link>
             </li>
             <li>
               <Link href="/resources/videos" className="hover:underline">
-                └── video-library
+                └── Video Library
               </Link>
             </li>
-          </ul>
         </li>
-
         <li>
           <Link href="/calendar" className="hover:underline">
-            📅 calendar
+            📅 Calendar
           </Link>
         </li>
 
             <li>
 			  <Link href="/admin" className="hover:underline">
-				Admin
+				📁 Admin
 			  </Link>
 			</li>
 			<li>
-			  <Link href="/admin/users" className="hover:underline">
-                ├── user management
-              </Link>
-            </li>
-            <li>
-              <Link href="/admin/audit" className="hover:underline">
-                └── audit
-              </Link>
-            </li>
-			<li>
-			  <Link href="/api/admin/roles" className="hover:underline">
-				├──roles	
-			  </Link>
-			</li>
-			<li>
-			  <Link href="/api/admin/users" className="hover:underline">
-				├──users
-			  </Link>
-			</li>
-         <li>
 			<Link href="/signin" className="hover:underline">
-				Sign in
+				├── Sign in
 			</Link>
 		 </li> 
 		 <li>
 			<Link href="register" className="hover:underline">
-				Sign Up
+				├── Sign Up
+			</Link>
+		 </li>
+			<li>
+			  <Link href="/api/admin/users" className="hover:underline">
+				├── DCC Users
+			  </Link>
+			</li>
+			<li>
+			  <Link href="/admin/users" className="hover:underline">
+                ├── DCC User Management
+              </Link>
+            </li>
+            <li>
+              <Link href="/admin/audit" className="hover:underline">
+                ├── Audit
+              </Link>
+            </li>
+			<li>
+			  <Link href="/api/admin/roles" className="hover:underline">
+				└── Permissions	
+			  </Link>
+			</li>
+			
+         <li>
+			<Link href="/newsletter/subscribe" className="hover:undelrine">
+				📁 Newsletter
+			</Link>
+		 </li> 
+		<li>
+			<Link href="/admin/newsletter/lists" className="hover:underline">
+				├── Newsletter Lists
 			</Link>
 		 </li>
 		 <li>
-			<Link href="/newsletter/subscribe" className="hover:undelrine">
-				Newsletter
+			<Link href="/admin/newsletter/subscribers" className="hover:underline">
+				└── Newsletter Subscribers
 			</Link>
 		 </li>
+		 
+
       </ul>
     </nav>
   );
