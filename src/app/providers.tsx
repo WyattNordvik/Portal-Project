@@ -2,6 +2,7 @@
 
 import { SessionProvider } from "next-auth/react";
 import NotificationsBell   from "@/components/NotificationsBell";
+import FooterNav from "@/components/FooterNav";
 import type { ReactNode }  from "react";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -14,7 +15,8 @@ export function Providers({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-grow">{children}</main>
-      </div>
+        <FooterNav />
+		</div>
     </SessionProvider>
   );
 }
