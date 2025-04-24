@@ -69,6 +69,11 @@ export default function FooterNav() {
 				Sign Up
 			</Link>
 		 </li>
+		 <li>
+			<Link href="/newsletter/subscribe" className="hover:undelrine">
+				Newsletter
+			</Link>
+		 </li>
       </ul>
     </nav>
   );

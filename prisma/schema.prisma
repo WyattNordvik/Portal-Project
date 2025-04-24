@@ -81,3 +81,59 @@ model AuditLog {
   @@index([userId, createdAt])
 }
 
+model NewsletterList {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  description   String?
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[] // back-relation to Subscription
+}
+
+model Subscriber {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String?
+  phone         String?
+  createdAt     DateTime       @default(now())
+  subscriptions Subscription[] // back-relation to Subscription
+  tags          SubscriberTag[] 
+}
+
+model Subscription {
+  id               String              @id @default(cuid())
+  subscriberId     String
+  listId           String
+  status           SubscriptionStatus  @default(PENDING)
+  confirmToken     String?			   @unique
+  subscribedAt     DateTime?
+  confirmedAt      DateTime?
+  unsubscribedAt   DateTime?
+
+  subscriber Subscriber     @relation(fields: [subscriberId], references: [id])
+  list       NewsletterList @relation(fields: [listId],     references: [id])
+
+  @@unique([subscriberId, listId])
+}
+
+model Tag {
+  id             String            @id @default(cuid())
+  name           String            @unique
+  subscriberTags SubscriberTag[]
+}
+
+model SubscriberTag {
+  subscriberId String
+  tagId        String
+
+  subscriber Subscriber @relation(fields: [subscriberId], references: [id])
+  tag        Tag        @relation(fields: [tagId],        references: [id])
+
+  @@id([subscriberId, tagId])
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  UNSUBSCRIBED
+}
+
