@@ -41,7 +41,7 @@ export default function FooterNav() {
 			</li>
 			<li>
 			  <Link href="/admin/users" className="hover:underline">
-                ├── users
+                ├── user management
               </Link>
             </li>
             <li>
@@ -49,6 +49,16 @@ export default function FooterNav() {
                 └── audit
               </Link>
             </li>
+			<li>
+			  <Link href="/api/admin/roles" className="hover:underline">
+				├──roles	
+			  </Link>
+			</li>
+			<li>
+			  <Link href="/api/admin/users" className="hover:underline">
+				├──users
+			  </Link>
+			</li>
          <li>
 			<Link href="/signin" className="hover:underline">
 				Sign in
