@@ -8,10 +8,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const session = await getServerSession(req, res, authOptions);
   if (!session) return res.status(401).json({ error: "Unauthorized" });
 
-  // Check in DB if this user has the 'admin' role
+  // ⬇️ Coerce the ID to string here:
+  const userId = String(session.user.id);
+
   const isAdmin = await prisma.userRole.findFirst({
     where: {
-      userId: session.user.id,
+      userId,               // now a string
       role: { name: "admin" },
     },
   });
