@@ -11,7 +11,6 @@ export default function FooterNav() {
             📁 Dashboard
           </Link>
         </li>
-        <li>
             <li>
               <Link href="/resources" className="hover:underline">
                 ├── Photo Gallery
@@ -22,13 +21,11 @@ export default function FooterNav() {
                 └── Video Library
               </Link>
             </li>
-        </li>
         <li>
           <Link href="/calendar" className="hover:underline">
             📅 Calendar
           </Link>
         </li>
-
             <li>
 			  <Link href="/admin" className="hover:underline">
 				📁 Admin
@@ -80,8 +77,11 @@ export default function FooterNav() {
 				└── Newsletter Subscribers
 			</Link>
 		 </li>
-		 
-
+		 <li>
+			<Link href="/admin/newsletter/tags" className="hover:underline">
+				└── Newsletter Tags	
+			</Link>
+		 </li> 
       </ul>
     </nav>
   );
