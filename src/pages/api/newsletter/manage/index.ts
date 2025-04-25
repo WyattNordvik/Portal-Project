@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const userId = String(session.user.id);
 
   const subscriber = await prisma.subscriber.findUnique({
-    where: { userId },
+    where: { email: session.user.email },
     include: {
       subscriptions: { where: { status: "ACTIVE" }, include: { list: true } },
       tags: { include: { tag: true } },
