@@ -166,7 +166,7 @@ export default function TagsPage() {
                 {s.tags.map((t, idx) => (
                   <span
                     key={t.id || idx} // < fallback to idx if t.id is missing
-                    className="bg-blue-100 px-2 py-1 rounded inline-flex items-center"
+                    className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center"
                   >
                     {t.name}
                     <button

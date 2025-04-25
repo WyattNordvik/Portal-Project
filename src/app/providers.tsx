@@ -4,6 +4,7 @@ import { SessionProvider } from "next-auth/react";
 import NotificationsBell   from "@/components/NotificationsBell";
 import FooterNav from "@/components/FooterNav";
 import type { ReactNode }  from "react";
+import { Toaster } from "react-hot-toast";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
@@ -15,6 +16,7 @@ export function Providers({ children }: { children: ReactNode }) {
           </div>
         </header>
         <main className="flex-grow">{children}</main>
+		<Toaster position="top-center" />
         <FooterNav />
 		</div>
     </SessionProvider>
