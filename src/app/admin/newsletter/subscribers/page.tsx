@@ -133,11 +133,11 @@ export default function SubscribersPage() {
               <td className="p-2">{s.phone || "—"}</td>
               <td className="p-2">
                 {s.lists.map((list) => (
-                  <div key={list.id} className="flex items-center gap-1">
-                    {list.name}
+                  <div key={`${s.id}-list-${list.id}` className="flex items-center gap-2">
+                    <span>{list}</span>
                     <button
                       className="text-xs text-red-500 hover:underline"
-                      onClick={() => unsubscribeList(s.id, list.id)}
+                      onClick={() => unsubscribeList(s.id, list)}
                     >
                       [Remove]
                     </button>
@@ -146,11 +146,11 @@ export default function SubscribersPage() {
               </td>
               <td className="p-2">
                 {s.tags.map((tag) => (
-                  <div key={tag.id} className="flex items-center gap-1">
-                    {tag.name}
+                  <div key={`${s.id}-tag-${tag}`} className="flex items-center gap-2">
+                    <span>{tag}</span>
                     <button
                       className="text-xs text-red-500 hover:underline"
-                      onClick={() => removeTag(s.id, tag.id)}
+                      onClick={() => removeTag(s.id, tag)}
                     >
                       [Remove]
                     </button>
