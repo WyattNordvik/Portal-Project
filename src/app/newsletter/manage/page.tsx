@@ -72,48 +72,45 @@ export default function ManagePage() {
   }
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Manage Your Subscriptions</h1>
-
-      {/* Render Subscriptions */}
-      <div className="mb-6">
-        <h2 className="font-semibold mb-2">Subscribed Lists</h2>
-        {data.subscriptions.map((s: any) => (
-          <div key={s.id} className="flex items-center justify-between mb-2">
-            <span>{s.listName}</span>
-            <button
-              onClick={() => removeSubscription(s.id)}
-              className="text-sm text-red-500 hover:underline"
-            >
-              Unsubscribe
-            </button>
-          </div>
-        ))}
+<div>
+	  <div className="mb-6">
+  <h2 className="font-semibold mb-2">Subscribed Lists</h2>
+  {data?.subscriptions?.length ? (
+    data.subscriptions.map((s: any) => (
+      <div key={s.id} className="flex items-center justify-between mb-2">
+        <span>{s.listName}</span>
+        <button
+          onClick={() => unsubscribe(s.id)}
+          className="text-red-600 text-sm"
+        >
+          Unsubscribe
+        </button>
       </div>
+    ))
+  ) : (
+    <p className="text-gray-500 text-sm">No subscriptions found.</p>
+  )}
+</div>
 
-      {/* Render Tags */}
-      <div className="mb-6">
-        <h2 className="font-semibold mb-2">Your Interests</h2>
-        {data.tags.map((t: any) => (
-          <div key={t.id} className="flex items-center justify-between mb-2">
-            <span>{t.name}</span>
-            <button
-              onClick={() => removeTag(t.id)}
-              className="text-sm text-red-500 hover:underline"
-            >
-              Remove
-            </button>
-          </div>
-        ))}
+<div className="mb-6">
+  <h2 className="font-semibold mb-2">Your Tags</h2>
+  {data?.tags?.length ? (
+    data.tags.map((t: any) => (
+      <div key={t.id} className="flex items-center justify-between mb-2">
+        <span>{t.tagName}</span>
+        <button
+          onClick={() => removeTag(t.id)}
+          className="text-red-600 text-sm"
+        >
+          Remove Tag
+        </button>
       </div>
-
-      <button
-        onClick={unsubscribeAll}
-        className="bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700"
-      >
-        Unsubscribe from All
-      </button>
-    </div>
+    ))
+  ) : (
+    <p className="text-gray-500 text-sm">No tags found.</p>
+  )}
+</div>
+</div>
   );
 }
 
