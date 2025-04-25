@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -7,19 +8,19 @@ type Subscriber = {
   email: string;
   name: string | null;
   phone: string | null;
-  lists: string[];
-  tags: string[];
+  lists: { id: string; name: string }[];
+  tags: { id: string; name: string }[];
   joinedAt: string | null;
 };
 type Tag = { id: string; name: string };
 
 export default function SubscribersPage() {
-  const [lists, setLists]           = useState<{ id:string; name:string }[]>([]);
-  const [tags, setTags]             = useState<Tag[]>([]);
-  const [subs, setSubs]             = useState<Subscriber[]>([]);
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [subs, setSubs] = useState<Subscriber[]>([]);
   const [activeListId, setActiveListId] = useState("");
-  const [activeTagId, setActiveTagId]   = useState("");
-  const [status, setStatus]         = useState("");
+  const [activeTagId, setActiveTagId] = useState("");
+  const [status, setStatus] = useState("");
 
   // Load lists & tags once
   useEffect(() => {
@@ -36,7 +37,7 @@ export default function SubscribersPage() {
   useEffect(() => {
     const params = new URLSearchParams();
     if (activeListId) params.set("listId", activeListId);
-    if (activeTagId)  params.set("tagId", activeTagId);
+    if (activeTagId) params.set("tagId", activeTagId);
 
     fetch(`/api/admin/newsletter/subscribers?${params.toString()}`)
       .then((r) => r.json())
@@ -47,8 +48,24 @@ export default function SubscribersPage() {
   const exportCsv = () => {
     const params = new URLSearchParams();
     if (activeListId) params.set("listId", activeListId);
-    if (activeTagId)  params.set("tagId", activeTagId);
+    if (activeTagId) params.set("tagId", activeTagId);
     window.open(`/api/admin/newsletter/export?${params.toString()}`, "_blank");
+  };
+
+  const removeTag = async (subscriberId: string, tagId: string) => {
+    if (!confirm("Remove this tag from subscriber?")) return;
+    await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    location.reload();
+  };
+
+  const unsubscribeList = async (subscriberId: string, listId: string) => {
+    if (!confirm("Unsubscribe this subscriber from this list?")) return;
+    await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
+      method: "DELETE",
+    });
+    location.reload();
   };
 
   return (
@@ -114,8 +131,32 @@ export default function SubscribersPage() {
               <td className="p-2">{s.name || "—"}</td>
               <td className="p-2">{s.email}</td>
               <td className="p-2">{s.phone || "—"}</td>
-              <td className="p-2">{s.lists.join(", ")}</td>
-              <td className="p-2">{s.tags.join(", ")}</td>
+              <td className="p-2">
+                {s.lists.map((list) => (
+                  <div key={list.id} className="flex items-center gap-1">
+                    {list.name}
+                    <button
+                      className="text-xs text-red-500 hover:underline"
+                      onClick={() => unsubscribeList(s.id, list.id)}
+                    >
+                      [Remove]
+                    </button>
+                  </div>
+                ))}
+              </td>
+              <td className="p-2">
+                {s.tags.map((tag) => (
+                  <div key={tag.id} className="flex items-center gap-1">
+                    {tag.name}
+                    <button
+                      className="text-xs text-red-500 hover:underline"
+                      onClick={() => removeTag(s.id, tag.id)}
+                    >
+                      [Remove]
+                    </button>
+                  </div>
+                ))}
+              </td>
               <td className="p-2">
                 {s.joinedAt ? new Date(s.joinedAt).toLocaleDateString() : "—"}
               </td>
