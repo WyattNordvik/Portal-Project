@@ -9,12 +9,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  const { email, name, phone, listId } = req.body as {
+  const { email, name, phone, listId, tagIds } = req.body as {
     email: string;
     name?: string;
     phone?: string;
     listId: string;
-  };
+	tagIds?: string[];
+};
 
   if (!email || !listId) {
     return res.status(400).json({ error: "Email and listId are required" });
@@ -52,6 +53,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       subscribedAt: null,
     },
   });
+
+	// After creating/upserting the subscription record:
+  if (Array.isArray(tagIds) && tagIds.length) {
+    for (const tagId of tagIds) {
+      // upsert each tag assignment
+      await prisma.subscriberTag.upsert({
+        where: { subscriberId_tagId: { subscriberId: subscriber.id, tagId } },
+        create: { subscriberId: subscriber.id, tagId },
+        update: {}, // no-op if already exists
+      });
+    }
+  }
 
   // Send confirmation email
   const confirmUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/newsletter/confirm?token=${token}`;
