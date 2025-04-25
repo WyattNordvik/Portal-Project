@@ -74,14 +74,19 @@ export default function FooterNav() {
 		 </li>
 		 <li>
 			<Link href="/admin/newsletter/subscribers" className="hover:underline">
-				└── Newsletter Subscribers
+				├── Newsletter Subscribers
 			</Link>
 		 </li>
 		 <li>
 			<Link href="/admin/newsletter/tags" className="hover:underline">
-				└── Newsletter Tags	
+				├── Newsletter Tags	
 			</Link>
 		 </li> 
+		 <li>
+			<Link href="/newsletter/manage" className="hover:underline">
+				└── Manage Subscriptions	
+			</Link>
+		 </li>
       </ul>
     </nav>
   );
