@@ -163,9 +163,9 @@ export default function TagsPage() {
             <li key={s.id} className="border p-2 rounded">
               <div className="font-medium">{s.name || s.email}</div>
               <div className="flex flex-wrap gap-2 mt-1">
-                {s.tags.map((t) => (
+                {s.tags.map((t, idx) => (
                   <span
-                    key={t.id}
+                    key={t.id || idx} // < fallback to idx if t.id is missing
                     className="bg-blue-100 px-2 py-1 rounded inline-flex items-center"
                   >
                     {t.name}
