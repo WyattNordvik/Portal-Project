@@ -1,69 +1,128 @@
 "use client";
+
 import { useEffect, useState } from "react";
 
-export default function SubscribersPage() {
-  const [lists, setLists]       = useState<{id:string;name:string}[]>([]);
-  const [activeListId, setActive] = useState("");
-  const [status, setStatus]     = useState("");
+type Subscriber = {
+  id: string;
+  email: string;
+  name: string | null;
+  phone: string | null;
+  lists: string[];
+  tags: string[];
+  joinedAt: string | null;
+};
+type Tag = { id: string; name: string };
 
+export default function SubscribersPage() {
+  const [lists, setLists]           = useState<{ id:string; name:string }[]>([]);
+  const [tags, setTags]             = useState<Tag[]>([]);
+  const [subs, setSubs]             = useState<Subscriber[]>([]);
+  const [activeListId, setActiveListId] = useState("");
+  const [activeTagId, setActiveTagId]   = useState("");
+  const [status, setStatus]         = useState("");
+
+  // Load lists & tags once
   useEffect(() => {
     fetch("/api/newsletter/lists")
-      .then(r => r.json())
+      .then((r) => r.json())
       .then(setLists);
+
+    fetch("/api/newsletter/tags")
+      .then((r) => r.json())
+      .then(setTags);
   }, []);
 
-  // Export handler
-  const exportCsv = () => {
-    if (!activeListId) return;
-    window.open(`/api/admin/newsletter/export?listId=${activeListId}`, "_blank");
-  };
+  // Fetch subscribers whenever filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeListId) params.set("listId", activeListId);
+    if (activeTagId)  params.set("tagId", activeTagId);
 
-  // Import handler
-  const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!activeListId) return setStatus("Select a list first");
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const form = new FormData();
-    form.append("file", file);
-    form.append("listId", activeListId);
-    const res = await fetch("/api/admin/newsletter/import", { method:"POST", body: form });
-    const json = await res.json();
-    if (res.ok) setStatus(`Imported ${json.imported}`);
-    else       setStatus(`Error: ${json.error}`);
+    fetch(`/api/admin/newsletter/subscribers?${params.toString()}`)
+      .then((r) => r.json())
+      .then(setSubs)
+      .catch((e) => setStatus(`Error loading subscribers: ${e}`));
+  }, [activeListId, activeTagId]);
+
+  const exportCsv = () => {
+    const params = new URLSearchParams();
+    if (activeListId) params.set("listId", activeListId);
+    if (activeTagId)  params.set("tagId", activeTagId);
+    window.open(`/api/admin/newsletter/export?${params.toString()}`, "_blank");
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Subscribers</h1>
+    <div className="p-6 space-y-6">
+      <h1 className="text-2xl font-bold">Subscribers</h1>
 
-      <label className="block mb-4">
-        Choose list:
-        <select
-          className="mt-1 border p-2"
-          value={activeListId}
-          onChange={(e) => setActive(e.target.value)}
-        >
-          <option value="">-- select --</option>
-          {lists.map((l) => (
-            <option key={l.id} value={l.id}>{l.name}</option>
-          ))}
-        </select>
-      </label>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-4">
+        <div>
+          <label className="block mb-1 font-medium">Filter by List</label>
+          <select
+            className="border p-2"
+            value={activeListId}
+            onChange={(e) => setActiveListId(e.target.value)}
+          >
+            <option value="">— All Lists —</option>
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
+          </select>
+        </div>
 
-      <div className="flex space-x-4 mb-4">
+        <div>
+          <label className="block mb-1 font-medium">Filter by Tag</label>
+          <select
+            className="border p-2"
+            value={activeTagId}
+            onChange={(e) => setActiveTagId(e.target.value)}
+          >
+            <option value="">— All Tags —</option>
+            {tags.map((t) => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+        </div>
+
         <button
           onClick={exportCsv}
-          className="px-4 py-2 bg-blue-600 text-white rounded"
+          className="self-end px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
           Export CSV
         </button>
-        <label className="px-4 py-2 bg-yellow-500 text-black rounded cursor-pointer">
-          Import CSV
-          <input type="file" accept=".csv" onChange={onFile} className="hidden" />
-        </label>
       </div>
 
-      {status && <p className="mt-2">{status}</p>}
+      {/* Status/Error */}
+      {status && <p className="text-red-600">{status}</p>}
+
+      {/* Subscribers table */}
+      <table className="w-full table-auto border-collapse">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2">Name</th>
+            <th className="p-2">Email</th>
+            <th className="p-2">Phone</th>
+            <th className="p-2">Lists</th>
+            <th className="p-2">Tags</th>
+            <th className="p-2">Joined</th>
+          </tr>
+        </thead>
+        <tbody>
+          {subs.map((s) => (
+            <tr key={s.id} className="border-t">
+              <td className="p-2">{s.name || "—"}</td>
+              <td className="p-2">{s.email}</td>
+              <td className="p-2">{s.phone || "—"}</td>
+              <td className="p-2">{s.lists.join(", ")}</td>
+              <td className="p-2">{s.tags.join(", ")}</td>
+              <td className="p-2">
+                {s.joinedAt ? new Date(s.joinedAt).toLocaleDateString() : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
