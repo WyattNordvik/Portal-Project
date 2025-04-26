@@ -60,13 +60,52 @@ export default function SubscribersPage() {
     location.reload();
   };
 
-  const unsubscribeList = async (subscriberId: string, listId: string) => {
+	const unsubscribeList = async (subscriberId: string, listId: string) => {
     if (!confirm("Unsubscribe this subscriber from this list?")) return;
     await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
       method: "DELETE",
     });
     location.reload();
   };
+
+};
+	const unsubscribeList = async (subscriberId: string, listId: string) => {
+  try {
+    const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to unsubscribe");
+    setSubs((subs) =>
+      subs.map((s) =>
+        s.id === subscriberId
+          ? { ...s, lists: s.lists.filter((l) => l !== listId) }
+          : s
+      )
+    );
+  } catch (e) {
+    alert("Error unsubscribing");
+  }
+}; // ← CLOSE this with semicolon and curly brace!
+
+const removeTag = async (subscriberId: string, tagId: string) => {
+  try {
+    const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/tags/${tagId}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) throw new Error("Failed to remove tag");
+    setSubs((subs) =>
+      subs.map((s) =>
+        s.id === subscriberId
+          ? { ...s, tags: s.tags.filter((t) => t !== tagId) }
+          : s
+      )
+    );
+  } catch (e) {
+    alert("Error removing tag");
+  }
+}; // ← CLOSE this with semicolon and curly brace!
+
+
 
   return (
     <div className="p-6 space-y-6">
