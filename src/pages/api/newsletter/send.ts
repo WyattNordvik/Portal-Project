@@ -61,28 +61,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     );
 
   let previewLogged= 0;
+  const batchSize = 10;
 	
-  for (const subscriber of subscribers) {
-	  const info = await transporter.sendMail({
-		from: process.env.EMAIL_FROM || "no-reply@example.com",
-		to: subscriber.email,
-		subject,
-		html,
-	  });
+  for (let i = 0; i < subscribers.length; i += batchSize) {
+	  const batch = subscribers.slice(i, i + batchSize);
+
+	  await Promise.all(
+		  batch.map(async (subscriber) => {
+			  const info = await transporter.sendMail({
+				  from: process.env.EMAIL_FROM || "no-reply@example.com",
+				  to: subscriber.email,
+				  subject,
+				  html,
+			  });
 
   if (process.env.SMTP_HOST?.includes("ethereal") && previewLogged < 5) {
 	const ethereal = await import("nodemailer");
 	console.log("Preview URL for", subscriber.email, ":", ethereal.getTestMessageUrl(info));
 	previewLogged++;
     }
-  }
+  })
+);
 
     await Promise.all(promises);
 
     // Small delay between batches (optional, protects SMTP server)
-    await new Promise((resolve) => setTimeout(resolve, 1500)); // 1.5 sec delay
+    await new Promise((resolve) => setTimeout(resolve, 300)); // 1.5 sec delay
   }
 
   return res.status(200).json({ success: true, sent: subscribers.length });
-}
+
+}}
 
