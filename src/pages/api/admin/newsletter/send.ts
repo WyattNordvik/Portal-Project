@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { prisma } from "@/lib/db";
 import { mjml2html } from "mjml";
-import { sendEmail } from "@/lib/email"; // <- using your existing email sender
+import { sendEmail } from "@/lib/email";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -12,7 +12,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).end(`Method ${req.method} Not Allowed`);
   }
 
-  // Authenticate admin
   const session = await getServerSession(req, res, authOptions);
   if (!session) return res.status(401).json({ error: "Unauthorized" });
   const userId = String(session.user.id);
@@ -21,41 +20,59 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
   if (!isAdmin) return res.status(403).json({ error: "Forbidden" });
 
-  // Validate request body
-  const { listId, subject, mjml } = req.body;
-  if (!listId || !subject || !mjml) {
+  const { listId, subject, mjml, testEmail } = req.body;
+  if (!subject || !mjml) {
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  // Compile MJML to HTML
   const { html, errors } = mjml2html(mjml);
   if (errors.length > 0) {
     return res.status(400).json({ error: "Invalid MJML", details: errors });
   }
 
-  // Fetch subscribers
-  const subscribers = await prisma.subscription.findMany({
+  if (testEmail) {
+    // Send only to the test email address
+    await sendEmail({
+      to: testEmail,
+      subject,
+      html,
+    });
+
+    return res.status(200).json({ success: true, test: true });
+  }
+
+  // Otherwise, proceed to batch sending to the list (same batching code from before)
+
+  const subscriptions = await prisma.subscription.findMany({
     where: { listId, status: "ACTIVE" },
     include: { subscriber: true },
   });
 
-  if (!subscribers.length) {
-    return res.status(400).json({ error: "No subscribers found for this list" });
+  if (!subscriptions.length) {
+    return res.status(400).json({ error: "No subscribers found" });
   }
 
-  // Send email to each subscriber
-  for (const sub of subscribers) {
-    const email = sub.subscriber.email;
-    if (!email) continue;
+  const batchSize = 20;
+  const delayMs = 2000;
 
-    // You could personalize the HTML here if you wanted...
-    await sendEmail({
-      to: email,
-      subject,
-      html,
-    });
+  for (let i = 0; i < subscriptions.length; i += batchSize) {
+    const batch = subscriptions.slice(i, i + batchSize);
+    await Promise.all(
+      batch.map((sub) => {
+        if (!sub.subscriber?.email) return;
+        return sendEmail({
+          to: sub.subscriber.email,
+          subject,
+          html,
+        });
+      })
+    );
+
+    if (i + batchSize < subscriptions.length) {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
   }
 
-  return res.status(200).json({ success: true, sent: subscribers.length });
+  return res.status(200).json({ success: true, sent: subscriptions.length });
 }
 
