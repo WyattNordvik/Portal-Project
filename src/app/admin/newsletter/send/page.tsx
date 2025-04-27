@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function SendNewsletterPage() {
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
@@ -8,8 +8,9 @@ export default function SendNewsletterPage() {
   const [selectedListId, setSelectedListId] = useState("");
   const [mjml, setMjml] = useState("");
   const [html, setHtml] = useState("");
-  const [status, setStatus] = useState("");
   const [testEmail, setTestEmail] = useState("");
+  const [status, setStatus] = useState("");
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
     fetch("/api/newsletter/lists")
@@ -18,6 +19,7 @@ export default function SendNewsletterPage() {
       .catch(() => setStatus("Failed to load lists"));
   }, []);
 
+  // Auto update HTML preview
   useEffect(() => {
     const delayDebounce = setTimeout(async () => {
       if (!mjml.trim()) {
@@ -39,42 +41,61 @@ export default function SendNewsletterPage() {
         }
       } catch (err) {
         console.error("Network error:", err);
+        setHtml("<p style='color:red'>Error rendering preview</p>");
       }
     }, 500);
-
     return () => clearTimeout(delayDebounce);
   }, [mjml]);
 
   const sendTest = async () => {
-    if (!subject || !mjml) return alert("Subject and content required");
+    if (!subject || !mjml || !testEmail) {
+      alert("Subject, MJML content, and test email required");
+      return;
+    }
     try {
-      await fetch("/api/newsletter/send-test", {
+      const res = await fetch("/api/newsletter/send-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-			to: testEmail,
-			subject, 
-			mjml,
-		}),
+        body: JSON.stringify({
+          to: testEmail,
+          subject,
+          mjml,
+        }),
       });
-      alert("Test email sent!");
+      if (res.ok) {
+        alert("Test email sent!");
+      } else {
+        alert("Failed to send test email");
+      }
     } catch {
       alert("Failed to send test email");
     }
   };
 
   const sendLive = async () => {
-    if (!subject || !selectedListId || !mjml) return alert("All fields required");
-    if (!confirm("Send newsletter to list?")) return;
+    if (!subject || !selectedListId || !mjml) {
+      alert("Subject, MJML content, and list selection required");
+      return;
+    }
+    if (!confirm("Are you sure you want to send the newsletter to the list?")) return;
+
+    setSending(true);
     try {
-      await fetch("/api/newsletter/send", {
+      const res = await fetch("/api/newsletter/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subject, mjml, listId: selectedListId }),
       });
-      alert("Newsletter sent!");
+      const data = await res.json();
+      if (res.ok) {
+        alert(`Newsletter sent to ${data.sent} subscribers!`);
+      } else {
+        alert(data.error || "Failed to send newsletter");
+      }
     } catch {
-      alert("Failed to send newsletter");
+      alert("Unexpected error sending newsletter");
+    } finally {
+      setSending(false);
     }
   };
 
@@ -103,6 +124,13 @@ export default function SendNewsletterPage() {
             </option>
           ))}
         </select>
+        <input
+          type="email"
+          value={testEmail}
+          onChange={(e) => setTestEmail(e.target.value)}
+          placeholder="Test email address"
+          className="border p-2 rounded min-w-[200px]"
+        />
         <button
           onClick={sendTest}
           className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
@@ -111,17 +139,11 @@ export default function SendNewsletterPage() {
         </button>
         <button
           onClick={sendLive}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+          disabled={sending}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
         >
-          Send Live
+          {sending ? "Sending..." : "Send Live"}
         </button>
-		<input
-			type="email"
-			value={testEmail}
-			onChange={(e) => setTestEmail(e.target.value)}
-			placeholder="Test email address"
-			className="border p-2 rounded w-full"
-		/>
       </div>
 
       {/* Editor and preview side-by-side */}
