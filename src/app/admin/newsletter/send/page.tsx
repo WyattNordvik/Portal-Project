@@ -1,100 +1,136 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export default function SendNewsletterPage() {
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  const [selectedListId, setSelectedListId] = useState("");
   const [subject, setSubject] = useState("");
   const [mjml, setMjml] = useState("");
-  const [previewHtml, setPreviewHtml] = useState("");
-  const [sending, setSending] = useState(false);
+  const [html, setHtml] = useState("");
+  const [status, setStatus] = useState("");
 
-  const generatePreview = async () => {
-    const res = await fetch("/api/newsletter/preview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mjml }),
-    });
-    const data = await res.json();
-    setPreviewHtml(data.html);
-  };
+  // Load newsletter lists
+  useEffect(() => {
+    fetch("/api/newsletter/lists")
+      .then((r) => r.json())
+      .then(setLists);
+  }, []);
 
-  const sendTestEmail = async () => {
-    setSending(true);
-    await fetch("/api/newsletter/send-test", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject, mjml }),
-    });
-    setSending(false);
-    alert("Test email sent!");
-  };
+  // Live MJML Preview
+  useEffect(() => {
+    const timeout = setTimeout(async () => {
+      if (!mjml.trim()) {
+        setHtml("");
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/newsletter/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mjml }),
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.details?.map((d: any) => d.message).join("\n") || "Invalid MJML");
+        }
+
+        const { html } = await res.json();
+        setHtml(html);
+      } catch (e: any) {
+        setHtml(`<div class="text-red-500 p-4">Error: ${e.message}</div>`);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [mjml]);
 
   const sendNewsletter = async () => {
-    if (!confirm("Are you sure you want to send this newsletter?")) return;
-    setSending(true);
-    await fetch("/api/newsletter/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ subject, mjml }),
-    });
-    setSending(false);
-    alert("Newsletter sent!");
+    if (!selectedListId || !subject.trim() || !mjml.trim()) {
+      setStatus("Please fill in all fields.");
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/newsletter/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          listId: selectedListId,
+          subject,
+          mjml,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to send newsletter.");
+      }
+
+      setStatus("✅ Newsletter is queued for sending!");
+      setSubject("");
+      setMjml("");
+      setSelectedListId("");
+      setHtml("");
+    } catch (e: any) {
+      setStatus(`Error: ${e.message}`);
+    }
   };
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-2xl font-bold">Send Newsletter</h1>
+      <h1 className="text-2xl font-bold mb-6">Send Newsletter</h1>
 
+      {/* Controls */}
       <div className="space-y-4">
-        <div>
-          <label className="block mb-1 font-medium">Subject</label>
-          <input
-            className="border p-2 w-full"
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            placeholder="Enter the email subject..."
-          />
-        </div>
+        <select
+          className="border p-2 w-full"
+          value={selectedListId}
+          onChange={(e) => setSelectedListId(e.target.value)}
+        >
+          <option value="">— Select Newsletter List —</option>
+          {lists.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
 
-        <div>
-          <label className="block mb-1 font-medium">MJML Content</label>
-          <textarea
-            className="border p-2 w-full h-64 font-mono"
-            value={mjml}
-            onChange={(e) => setMjml(e.target.value)}
-            placeholder="Paste your MJML markup here..."
-          />
-        </div>
+        <input
+          type="text"
+          placeholder="Subject line"
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          className="border p-2 w-full"
+        />
 
-        <div className="flex gap-4">
-          <button
-            onClick={generatePreview}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-          >
-            Generate Preview
-          </button>
-          <button
-            onClick={sendTestEmail}
-            disabled={sending}
-            className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-          >
-            Send Test
-          </button>
-          <button
-            onClick={sendNewsletter}
-            disabled={sending}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Send Newsletter
-          </button>
-        </div>
+        <button
+          onClick={sendNewsletter}
+          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+        >
+          Send Newsletter
+        </button>
 
-        {previewHtml && (
-          <div className="border p-4 rounded bg-white">
-            <h2 className="text-lg font-semibold mb-2">Preview</h2>
-            <div dangerouslySetInnerHTML={{ __html: previewHtml }} />
-          </div>
-        )}
+        {status && <div className="text-red-500">{status}</div>}
+      </div>
+
+      {/* Editor + Preview */}
+      <div className="flex gap-6 mt-8">
+        {/* MJML Editor */}
+        <textarea
+          placeholder="Paste or write MJML here..."
+          value={mjml}
+          onChange={(e) => setMjml(e.target.value)}
+          className="border p-2 w-1/2 h-[80vh] font-mono resize-none"
+        />
+
+        {/* Preview */}
+        <div className="border p-4 w-1/2 h-[80vh] overflow-y-auto bg-white">
+          <h2 className="text-lg font-semibold mb-2">Preview:</h2>
+          <div dangerouslySetInnerHTML={{ __html: html }} />
+        </div>
       </div>
     </div>
   );

@@ -13,10 +13,19 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     return res.status(400).json({ error: "Missing MJML content" });
   }
 
-  const { html, errors } = mjml2html(mjml);
+  const { html, errors } = mjml2html(mjml, { validationLevel: "strict" });
 
   if (errors.length > 0) {
-    return res.status(400).json({ error: "Invalid MJML", details: errors });
+    const detailedErrors = errors.map((e) => ({
+      line: e.line,
+      message: e.message,
+      tagName: e.tagName,
+    }));
+
+    return res.status(400).json({
+      error: "Invalid MJML",
+      details: detailedErrors,
+    });
   }
 
   return res.status(200).json({ html });

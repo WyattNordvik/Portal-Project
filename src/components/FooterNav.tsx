@@ -68,7 +68,7 @@ export default function FooterNav() {
 			</Link>
 		 </li>
 		 <li>
-			<Link href="admin/newsletter/send" className="hover:underline">
+			<Link href="/admin/newsletter/send" className="hover:underline">
 				├── Send Newsletter	
 			</Link>
 		 </li>
