@@ -1,168 +1,239 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import mjml2html from "mjml";
+import { toast } from "react-hot-toast";
+
+type Template = { id: string; name: string; subject: string; mjml: string };
 
 export default function SendNewsletterPage() {
-  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [subject, setSubject] = useState("");
-  const [selectedListId, setSelectedListId] = useState("");
   const [mjml, setMjml] = useState("");
   const [html, setHtml] = useState("");
-  const [testEmail, setTestEmail] = useState("");
-  const [status, setStatus] = useState("");
-  const [sending, setSending] = useState(false);
+  const [to, setTo] = useState("");
+  const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
+  const [selectedListId, setSelectedListId] = useState("");
+  const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
+    fetch("/api/admin/newsletter/templates")
+      .then((r) => r.json())
+      .then(setTemplates)
+      .catch(() => toast.error("Failed to load templates"));
+
     fetch("/api/newsletter/lists")
       .then((r) => r.json())
       .then(setLists)
-      .catch(() => setStatus("Failed to load lists"));
+      .catch(() => toast.error("Failed to load lists"));
   }, []);
 
-  // Auto update HTML preview
   useEffect(() => {
-    const delayDebounce = setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       if (!mjml.trim()) {
         setHtml("");
         return;
       }
-      try {
-        const res = await fetch("/api/newsletter/render", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mjml }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setHtml(data.html);
-        } else {
-          console.error("Render error:", data.error);
-          setHtml("<p style='color:red'>Error rendering preview</p>");
-        }
-      } catch (err) {
-        console.error("Network error:", err);
+      const res = await fetch("/api/newsletter/render", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mjml }),
+      });
+      const data = await res.json();
+      if (data.html) {
+        setHtml(data.html);
+      } else {
+        console.error("Render error:", data.error);
         setHtml("<p style='color:red'>Error rendering preview</p>");
       }
     }, 500);
-    return () => clearTimeout(delayDebounce);
+
+    return () => clearTimeout(timeout);
   }, [mjml]);
 
   const sendTest = async () => {
-    if (!subject || !mjml || !testEmail) {
-      alert("Subject, MJML content, and test email required");
-      return;
-    }
     try {
       const res = await fetch("/api/newsletter/send-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          to: testEmail,
-          subject,
-          mjml,
-        }),
+        body: JSON.stringify({ to, subject, mjml }),
       });
       if (res.ok) {
-        alert("Test email sent!");
+        toast.success("Test email sent!");
       } else {
-        alert("Failed to send test email");
+        throw new Error("Failed to send");
       }
-    } catch {
-      alert("Failed to send test email");
+    } catch (err) {
+      toast.error("Failed to send test");
     }
   };
 
   const sendLive = async () => {
-    if (!subject || !selectedListId || !mjml) {
-      alert("Subject, MJML content, and list selection required");
+    if (!selectedListId) {
+      toast.error("Select a list first");
       return;
     }
-    if (!confirm("Are you sure you want to send the newsletter to the list?")) return;
-
-    setSending(true);
+    if (!confirm("Are you sure you want to send to all subscribers on this list?")) return;
     try {
       const res = await fetch("/api/newsletter/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, mjml, listId: selectedListId }),
+        body: JSON.stringify({ listId: selectedListId, subject, mjml }),
       });
-      const data = await res.json();
       if (res.ok) {
-        alert(`Newsletter sent to ${data.sent} subscribers!`);
+        toast.success("Emails sent!");
       } else {
-        alert(data.error || "Failed to send newsletter");
+        throw new Error("Failed to send");
       }
-    } catch {
-      alert("Unexpected error sending newsletter");
-    } finally {
-      setSending(false);
+    } catch (err) {
+      toast.error("Failed to send");
+    }
+  };
+
+  const saveTemplate = async () => {
+    const name = prompt("Enter a name for this template:");
+    if (!name) return;
+    try {
+      const res = await fetch("/api/admin/newsletter/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, subject, mjml }),
+      });
+      if (res.ok) {
+        const newTemplate = await res.json();
+        setTemplates((prev) => [newTemplate, ...prev]);
+        toast.success("Template saved!");
+      } else {
+        throw new Error("Failed to save template");
+      }
+    } catch (err) {
+      toast.error("Failed to save");
+    }
+  };
+
+  const loadTemplate = (template: Template) => {
+    if (!confirm(`Load template "${template.name}"? This will overwrite current content.`)) return;
+    setSubject(template.subject);
+    setMjml(template.mjml);
+  };
+
+  const deleteTemplate = async (id: string) => {
+    if (!confirm("Delete this template?")) return;
+    try {
+      const res = await fetch(`/api/admin/newsletter/templates?id=${id}`, { method: "DELETE" });
+      if (res.ok) {
+        setTemplates((prev) => prev.filter((t) => t.id !== id));
+        toast.success("Template deleted");
+      } else {
+        throw new Error("Failed to delete");
+      }
+    } catch (err) {
+      toast.error("Failed to delete");
     }
   };
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-3xl font-bold mb-6">Send Newsletter</h1>
+      <h1 className="text-2xl font-bold">Send Newsletter</h1>
 
-      {/* Form controls */}
-      <div className="flex flex-wrap items-center gap-4 mb-6">
-        <input
-          type="text"
-          placeholder="Subject Line"
-          className="border p-2 flex-1 min-w-[200px]"
-          value={subject}
-          onChange={(e) => setSubject(e.target.value)}
-        />
-        <select
-          className="border p-2"
-          value={selectedListId}
-          onChange={(e) => setSelectedListId(e.target.value)}
-        >
-          <option value="">Select List</option>
-          {lists.map((l) => (
-            <option key={l.id} value={l.id}>
-              {l.name}
-            </option>
-          ))}
-        </select>
-        <input
-          type="email"
-          value={testEmail}
-          onChange={(e) => setTestEmail(e.target.value)}
-          placeholder="Test email address"
-          className="border p-2 rounded min-w-[200px]"
-        />
-        <button
-          onClick={sendTest}
-          className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600"
-        >
-          Send Test
-        </button>
-        <button
-          onClick={sendLive}
-          disabled={sending}
-          className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400"
-        >
-          {sending ? "Sending..." : "Send Live"}
-        </button>
-      </div>
+      {/* Controls - Subject, List, Test Email */}
+      <div className="space-y-4">
+        <div>
+          <label className="block mb-1 font-medium">Subject</label>
+          <input
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            className="border p-2 w-full"
+          />
+        </div>
 
-      {/* Editor and preview side-by-side */}
-      <div className="flex flex-row gap-6">
-        {/* MJML Editor */}
-        <textarea
-          value={mjml}
-          onChange={(e) => setMjml(e.target.value)}
-          placeholder="Paste your MJML code here..."
-          className="border p-3 w-full md:w-1/2 h-[80vh] font-mono text-sm resize-none"
-        />
+        <div>
+          <label className="block mb-1 font-medium">Select List</label>
+          <select
+            value={selectedListId}
+            onChange={(e) => setSelectedListId(e.target.value)}
+            className="border p-2 w-full"
+          >
+            <option value="">— Select List —</option>
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+        </div>
 
-        {/* Live Preview */}
-        <div className="border p-3 w-full md:w-1/2 h-[80vh] overflow-auto bg-white">
-          <div dangerouslySetInnerHTML={{ __html: html }} />
+        <div className="flex gap-2">
+          <input
+            type="email"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            placeholder="Test email address"
+            className="border p-2 flex-1"
+          />
+          <button onClick={sendTest} className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">
+            Send Test
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            onClick={sendLive}
+            className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 w-full"
+          >
+            Send Live
+          </button>
+
+          <button
+            onClick={saveTemplate}
+            className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600 w-full"
+          >
+            Save as Template
+          </button>
         </div>
       </div>
 
-      {status && <p className="text-red-600">{status}</p>}
+      {/* Editor and Preview */}
+      <div className="grid grid-cols-2 gap-6">
+        <textarea
+          className="border p-2 w-full h-96 font-mono"
+          placeholder="<mjml>...</mjml>"
+          value={mjml}
+          onChange={(e) => setMjml(e.target.value)}
+        />
+
+        <div>
+          <div
+            className="border p-4 bg-white rounded shadow overflow-auto"
+            style={{ minHeight: "400px" }}
+            dangerouslySetInnerHTML={{ __html: html }}
+          />
+        </div>
+      </div>
+
+      {/* Templates */}
+      <div>
+        <h2 className="text-xl font-semibold mb-2">Templates</h2>
+        <div className="space-y-2">
+          {templates.map((t) => (
+            <div
+              key={t.id}
+              className="border p-3 rounded cursor-pointer hover:bg-gray-100 flex justify-between items-center"
+            >
+              <div onClick={() => loadTemplate(t)}>
+                <div className="font-medium">{t.name}</div>
+                <div className="text-sm text-gray-500">{t.subject}</div>
+              </div>
+              <button
+                onClick={() => deleteTemplate(t.id)}
+                className="text-red-600 hover:underline text-xs"
+              >
+                Delete
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

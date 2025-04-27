@@ -137,3 +137,11 @@ enum SubscriptionStatus {
   UNSUBSCRIBED
 }
 
+model NewsletterTemplate {
+	id		String	@id @default(cuid())
+	name	String
+	subject	String
+	mjml	String
+	createdAt	DateTime	@default(now())
+}
+
