@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { transporter } from "@/lib/mailer";
-import { mjmlToHtml } from "mjml";
+import { mjml } from "mjml";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Missing required fields" });
   }
 
-  const { html } = mjmlToHtml(mjml);
+  const { html } = mjml.mjml2html(mjml);
 
   try {
     const info = await transporter.sendMail({
