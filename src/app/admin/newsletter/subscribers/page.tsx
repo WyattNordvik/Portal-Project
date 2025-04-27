@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,6 +11,7 @@ type Subscriber = {
   tags: { id: string; name: string }[];
   joinedAt: string | null;
 };
+
 type Tag = { id: string; name: string };
 
 export default function SubscribersPage() {
@@ -52,60 +52,41 @@ export default function SubscribersPage() {
     window.open(`/api/admin/newsletter/export?${params.toString()}`, "_blank");
   };
 
+  const unsubscribeList = async (subscriberId: string, listId: string) => {
+    try {
+      const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to unsubscribe");
+      setSubs((subs) =>
+        subs.map((s) =>
+          s.id === subscriberId
+            ? { ...s, lists: s.lists.filter((l) => l.id !== listId) }
+            : s
+        )
+      );
+    } catch (e) {
+      alert("Error unsubscribing");
+    }
+  };
+
   const removeTag = async (subscriberId: string, tagId: string) => {
-    if (!confirm("Remove this tag from subscriber?")) return;
-    await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/tags/${tagId}`, {
-      method: "DELETE",
-    });
-    location.reload();
+    try {
+      const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/tags/${tagId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to remove tag");
+      setSubs((subs) =>
+        subs.map((s) =>
+          s.id === subscriberId
+            ? { ...s, tags: s.tags.filter((t) => t.id !== tagId) }
+            : s
+        )
+      );
+    } catch (e) {
+      alert("Error removing tag");
+    }
   };
-
-	const unsubscribeList = async (subscriberId: string, listId: string) => {
-    if (!confirm("Unsubscribe this subscriber from this list?")) return;
-    await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
-      method: "DELETE",
-    });
-    location.reload();
-  };
-
-};
-	const unsubscribeList = async (subscriberId: string, listId: string) => {
-  try {
-    const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/lists/${listId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to unsubscribe");
-    setSubs((subs) =>
-      subs.map((s) =>
-        s.id === subscriberId
-          ? { ...s, lists: s.lists.filter((l) => l !== listId) }
-          : s
-      )
-    );
-  } catch (e) {
-    alert("Error unsubscribing");
-  }
-}; // ← CLOSE this with semicolon and curly brace!
-
-const removeTag = async (subscriberId: string, tagId: string) => {
-  try {
-    const res = await fetch(`/api/admin/newsletter/subscribers/${subscriberId}/tags/${tagId}`, {
-      method: "DELETE",
-    });
-    if (!res.ok) throw new Error("Failed to remove tag");
-    setSubs((subs) =>
-      subs.map((s) =>
-        s.id === subscriberId
-          ? { ...s, tags: s.tags.filter((t) => t !== tagId) }
-          : s
-      )
-    );
-  } catch (e) {
-    alert("Error removing tag");
-  }
-}; // ← CLOSE this with semicolon and curly brace!
-
-
 
   return (
     <div className="p-6 space-y-6">
@@ -122,7 +103,9 @@ const removeTag = async (subscriberId: string, tagId: string) => {
           >
             <option value="">— All Lists —</option>
             {lists.map((l) => (
-              <option key={l.id} value={l.id}>{l.name}</option>
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
             ))}
           </select>
         </div>
@@ -136,7 +119,9 @@ const removeTag = async (subscriberId: string, tagId: string) => {
           >
             <option value="">— All Tags —</option>
             {tags.map((t) => (
-              <option key={t.id} value={t.id}>{t.name}</option>
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
             ))}
           </select>
         </div>
@@ -170,26 +155,26 @@ const removeTag = async (subscriberId: string, tagId: string) => {
               <td className="p-2">{s.name || "—"}</td>
               <td className="p-2">{s.email}</td>
               <td className="p-2">{s.phone || "—"}</td>
-              <td className="p-2">
+              <td className="p-2 space-y-1">
                 {s.lists.map((list) => (
-                  <div key={`${s.id}-list-${list.id}` className="flex items-center gap-2">
-                    <span>{list}</span>
+                  <div key={`${s.id}-list-${list.id}`} className="flex items-center gap-2">
+                    <span>{list.name}</span>
                     <button
                       className="text-xs text-red-500 hover:underline"
-                      onClick={() => unsubscribeList(s.id, list)}
+                      onClick={() => unsubscribeList(s.id, list.id)}
                     >
                       [Remove]
                     </button>
                   </div>
                 ))}
               </td>
-              <td className="p-2">
+              <td className="p-2 space-y-1">
                 {s.tags.map((tag) => (
-                  <div key={`${s.id}-tag-${tag}`} className="flex items-center gap-2">
-                    <span>{tag}</span>
+                  <div key={`${s.id}-tag-${tag.id}`} className="flex items-center gap-2">
+                    <span>{tag.name}</span>
                     <button
                       className="text-xs text-red-500 hover:underline"
-                      onClick={() => removeTag(s.id, tag)}
+                      onClick={() => removeTag(s.id, tag.id)}
                     >
                       [Remove]
                     </button>

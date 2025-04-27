@@ -1,7 +1,8 @@
+// /api/admin/newsletter/subscribers.ts
 import type { NextApiRequest, NextApiResponse } from "next";
-import { getServerSession }                     from "next-auth/next";
-import { authOptions }                          from "@/pages/api/auth/[...nextauth]";
-import { prisma }                               from "@/lib/db";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { prisma } from "@/lib/db";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // 1) Auth + admin check
@@ -23,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { listId, tagId } = req.query as { listId?: string; tagId?: string };
   const where: any = {};
   if (listId) where.subscriptions = { some: { listId, status: "ACTIVE" } };
-  if (tagId)   where.tags          = { some: { tagId } };
+  if (tagId) where.tags = { some: { tagId } };
 
   // 4) Fetch subscribers with their lists & tags
   const subs = await prisma.subscriber.findMany({
@@ -34,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         include: { list: true },
       },
       tags: {
-        include: { tag: true },
+        include: { tag: true }, // <- get full tag info (id + name)
       },
     },
     orderBy: { createdAt: "desc" },
@@ -42,12 +43,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   // 5) Shape the result
   const result = subs.map((s) => ({
-    id:       s.id,
-    email:    s.email,
-    name:     s.name,
-    phone:    s.phone,
-    lists:    s.subscriptions.map((su) => su.list.name),
-    tags:     s.tags.map((st) => st.tag.name),
+    id: s.id,
+    email: s.email,
+    name: s.name,
+    phone: s.phone,
+    lists: s.subscriptions.map((su) => ({
+      id: su.list.id,
+      name: su.list.name,
+    })),
+    tags: s.tags.map((st) => ({
+      id: st.tag.id,
+      name: st.tag.name,
+    })),
     joinedAt: s.subscriptions[0]?.subscribedAt || null,
   }));
 

@@ -1,3 +1,4 @@
+// src/app/admin/newsletter/tags/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,11 +7,11 @@ type Tag = { id: string; name: string };
 type Subscriber = { id: string; email: string; name?: string; tags: Tag[] };
 
 export default function TagsPage() {
-  const [tags, setTags]               = useState<Tag[]>([]);
-  const [newTag, setNewTag]           = useState("");
-  const [subs, setSubs]               = useState<Subscriber[]>([]);
-  const [selectedSubId, setSelected]  = useState<string>("");
-  const [selectedTagId, setSelectedTag] = useState<string>("");
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [subs, setSubs] = useState<Subscriber[]>([]);
+  const [newTag, setNewTag] = useState("");
+  const [selectedSubId, setSelectedSubId] = useState<string>("");
+  const [selectedTagId, setSelectedTagId] = useState<string>("");
 
   // Load tags and subscribers
   useEffect(() => {
@@ -18,36 +19,35 @@ export default function TagsPage() {
       .then((r) => r.json())
       .then(setTags);
 
-    fetch("/api/admin/newsletter/subscribers?listId=") // reuse your existing endpoint, passing no listId to get all?
+    fetch("/api/admin/newsletter/subscribers?listId=")
       .then((r) => r.json())
       .then(setSubs);
   }, []);
 
-  // Create tag
+  // Create new tag
   const addTag = async () => {
     if (!newTag.trim()) return;
     const res = await fetch("/api/newsletter/tags", {
-      method:  "POST",
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ name: newTag.trim() }),
+      body: JSON.stringify({ name: newTag.trim() }),
     });
     if (res.ok) {
       const tag = await res.json();
-      setTags((t) => [...t, tag]);
+      setTags((prev) => [...prev, tag]);
       setNewTag("");
     }
   };
 
-  // Delete tag
+  // Delete a tag completely
   const deleteTag = async (id: string) => {
     if (!confirm("Delete tag?")) return;
     await fetch(`/api/newsletter/tags/${id}`, { method: "DELETE" });
-    setTags((t) => t.filter((x) => x.id !== id));
-    // also remove it locally from each subscriber
-    setSubs((s) =>
-      s.map((sub) => ({
+    setTags((prev) => prev.filter((t) => t.id !== id));
+    setSubs((prev) =>
+      prev.map((sub) => ({
         ...sub,
-        tags: sub.tags.filter((tg) => tg.id !== id),
+        tags: sub.tags.filter((tag) => tag.id !== id),
       }))
     );
   };
@@ -55,45 +55,63 @@ export default function TagsPage() {
   // Assign tag to subscriber
   const assign = async () => {
     if (!selectedSubId || !selectedTagId) return;
-    await fetch("/api/newsletter/subscriber-tags", {
-      method:  "POST",
+    const res = await fetch("/api/newsletter/subscriber-tags", {
+      method: "POST",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ subscriberId: selectedSubId, tagId: selectedTagId }),
+      body: JSON.stringify({ subscriberId: selectedSubId, tagId: selectedTagId }),
     });
-    // update local
-    setSubs((s) =>
-      s.map((sub) =>
-        sub.id === selectedSubId
-          ? {
-              ...sub,
-              tags: [...sub.tags, tags.find((t) => t.id === selectedTagId)!],
-            }
-          : sub
-      )
-    );
+    if (res.ok) {
+      setSubs((prev) =>
+        prev.map((sub) =>
+          sub.id === selectedSubId
+            ? {
+                ...sub,
+                tags: [...sub.tags, tags.find((t) => t.id === selectedTagId)!],
+              }
+            : sub
+        )
+      );
+    }
   };
 
-  // Remove tag
+  // Remove tag from subscriber
   const unassign = async (subId: string, tagId: string) => {
-    await fetch("/api/newsletter/subscriber-tags", {
-      method:  "DELETE",
+    const res = await fetch("/api/newsletter/subscriber-tags", {
+      method: "DELETE",
       headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify({ subscriberId: subId, tagId }),
+      body: JSON.stringify({ subscriberId: subId, tagId }),
     });
-    setSubs((s) =>
-      s.map((sub) =>
-        sub.id === subId
-          ? { ...sub, tags: sub.tags.filter((tg) => tg.id !== tagId) }
-          : sub
-      )
-    );
+    if (res.ok) {
+      setSubs((prev) =>
+        prev.map((sub) =>
+          sub.id === subId
+            ? { ...sub, tags: sub.tags.filter((tag) => tag.id !== tagId) }
+            : sub
+        )
+      );
+    } else {
+      alert("Failed to unassign tag");
+    }
+  };
+
+  // Delete subscriber completely
+  const deleteSubscriber = async (subId: string) => {
+    if (!confirm("Delete this subscriber?")) return;
+    const res = await fetch(`/api/admin/newsletter/subscribers/${subId}`, {
+      method: "DELETE",
+    });
+    if (res.ok) {
+      setSubs((prev) => prev.filter((sub) => sub.id !== subId));
+    } else {
+      alert("Failed to delete subscriber");
+    }
   };
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold">Tag Management</h1>
 
-      {/* Create new */}
+      {/* Create new tag */}
       <div className="flex items-center space-x-2">
         <input
           value={newTag}
@@ -108,11 +126,11 @@ export default function TagsPage() {
 
       {/* Existing tags */}
       <ul className="flex flex-wrap gap-2">
-        {tags.map((t) => (
-          <li key={t.id} className="bg-gray-200 px-2 py-1 rounded inline-flex items-center">
-            {t.name}
+        {tags.map((tag) => (
+          <li key={tag.id} className="bg-gray-200 px-2 py-1 rounded inline-flex items-center">
+            {tag.name}
             <button
-              onClick={() => deleteTag(t.id)}
+              onClick={() => deleteTag(tag.id)}
               className="ml-1 text-red-600 font-bold"
             >
               ×
@@ -121,14 +139,14 @@ export default function TagsPage() {
         ))}
       </ul>
 
-      {/* Assign/Unassign to subscribers */}
+      {/* Assign tag to subscriber */}
       <div className="space-y-4">
         <h2 className="font-semibold">Assign Tag to Subscriber</h2>
         <div className="flex space-x-2">
           <select
             className="border p-2"
             value={selectedSubId}
-            onChange={(e) => setSelected(e.target.value)}
+            onChange={(e) => setSelectedSubId(e.target.value)}
           >
             <option value="">Select subscriber</option>
             {subs.map((s) => (
@@ -137,18 +155,20 @@ export default function TagsPage() {
               </option>
             ))}
           </select>
+
           <select
             className="border p-2"
             value={selectedTagId}
-            onChange={(e) => setSelectedTag(e.target.value)}
+            onChange={(e) => setSelectedTagId(e.target.value)}
           >
             <option value="">Select tag</option>
-            {tags.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
+            {tags.map((tag) => (
+              <option key={tag.id} value={tag.id}>
+                {tag.name}
               </option>
             ))}
           </select>
+
           <button onClick={assign} className="px-3 py-1 bg-blue-600 text-white rounded">
             Assign
           </button>
@@ -158,20 +178,29 @@ export default function TagsPage() {
       {/* Subscribers & their tags */}
       <div>
         <h2 className="font-semibold mb-2">Subscribers</h2>
-        <ul className="space-y-2">
-          {subs.map((s) => (
-            <li key={s.id} className="border p-2 rounded">
-              <div className="font-medium">{s.name || s.email}</div>
-              <div className="flex flex-wrap gap-2 mt-1">
-                {s.tags.map((t, idx) => (
+        <ul className="space-y-4">
+          {subs.map((sub) => (
+            <li key={sub.id} className="border p-4 rounded space-y-2">
+              <div className="flex justify-between items-center">
+                <div className="font-medium">{sub.name || sub.email}</div>
+                <button
+                  onClick={() => deleteSubscriber(sub.id)}
+                  className="text-red-600 hover:underline text-sm"
+                >
+                  Delete Subscriber
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                {sub.tags.map((tag) => (
                   <span
-                    key={t.id || idx} // < fallback to idx if t.id is missing
+                    key={tag.id}
                     className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium inline-flex items-center"
                   >
-                    {t.name}
+                    {tag.name}
                     <button
-                      onClick={() => unassign(s.id, t.id)}
-                      className="ml-1 text-red-600 font-bold"
+                      onClick={() => unassign(sub.id, tag.id)}
+                      className="ml-2 text-red-600 font-bold"
                       title="Remove tag"
                     >
                       ×
