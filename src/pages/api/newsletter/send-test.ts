@@ -1,42 +1,40 @@
-// src/pages/api/newsletter/send-test.ts
-import type { NextApiRequest, NextApiResponse } from "next";
-import { prisma } from "@/lib/db";
+import { NextApiRequest, NextApiResponse } from "next";
+import { transporter } from "@/lib/mailer";
 import { mjmlToHtml } from "mjml";
-import { transporter } from "@/lib/mailer"; // assuming you already have a transporter set up
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
-    res.setHeader("Allow", ["POST"]);
-    return res.status(405).end(`Method ${req.method} Not Allowed`);
+    return res.status(405).end();
   }
 
   const { to, subject, mjml } = req.body;
 
   if (!to || !subject || !mjml) {
-    return res.status(400).json({ error: "Missing to, subject, or mjml" });
+    return res.status(400).json({ error: "Missing required fields" });
   }
 
+  const { html } = mjmlToHtml(mjml);
+
   try {
-    // 1. Convert MJML to HTML
-    const { html, errors } = mjmlToHtml(mjml);
-
-    if (errors.length) {
-      console.error("MJML Errors:", errors);
-      return res.status(400).json({ error: "Invalid MJML" });
-    }
-
-    // 2. Send email
-    await transporter.sendMail({
+    const info = await transporter.sendMail({
+      from: process.env.EMAIL_FROM || "no-reply@example.com",
       to,
-      from: `"Your Organization" <no-reply@yourdomain.com>`, // customize this
       subject,
       html,
     });
 
-    return res.status(200).json({ message: "Test email sent!" });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Failed to send test email" });
+    console.log("Email sent:", info.messageId);
+
+    // If using Ethereal, log the preview URL
+    if (process.env.SMTP_HOST?.includes("ethereal")) {
+      const ethereal = await import("nodemailer");
+      console.log("Preview URL:", ethereal.getTestMessageUrl(info));
+    }
+
+    return res.status(200).json({ success: true });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: "Failed to send" });
   }
 }
 

@@ -9,6 +9,7 @@ export default function SendNewsletterPage() {
   const [mjml, setMjml] = useState("");
   const [html, setHtml] = useState("");
   const [status, setStatus] = useState("");
+  const [testEmail, setTestEmail] = useState("");
 
   useEffect(() => {
     fetch("/api/newsletter/lists")
@@ -50,7 +51,11 @@ export default function SendNewsletterPage() {
       await fetch("/api/newsletter/send-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ subject, mjml }),
+        body: JSON.stringify({ 
+			to: testEmail,
+			subject, 
+			mjml,
+		}),
       });
       alert("Test email sent!");
     } catch {
@@ -110,6 +115,13 @@ export default function SendNewsletterPage() {
         >
           Send Live
         </button>
+		<input
+			type="email"
+			value={testEmail}
+			onChange={(e) => setTestEmail(e.target.value)}
+			placeholder="Test email address"
+			className="border p-2 rounded w-full"
+		/>
       </div>
 
       {/* Editor and preview side-by-side */}
