@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { transporter } from "@/lib/mailer";
-import { mjml } from "mjml";
+import { mjml2html } from "mjml/lib/index.cjs";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
