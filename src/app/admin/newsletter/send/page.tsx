@@ -18,7 +18,10 @@ export default function SendNewsletterPage() {
   useEffect(() => {
     fetch("/api/admin/newsletter/templates")
       .then((r) => r.json())
-      .then(setTemplates)
+      .then((data) => {
+		  console.log("Templates data:", data);
+	  setTemplates(data);
+	  })
       .catch(() => toast.error("Failed to load templates"));
 
     fetch("/api/newsletter/lists")
@@ -129,6 +132,9 @@ export default function SendNewsletterPage() {
     } catch (err) {
       toast.error("Failed to delete");
     }
+  } catch (err) {
+	  toast.error("Failed to delete");
+  }
   };
 
   return (
@@ -210,31 +216,47 @@ export default function SendNewsletterPage() {
           />
         </div>
       </div>
+		
+{/* Templates */}
+<div className="mt-12">
+  <h2 className="text-xl font-semibold mb-4">Templates</h2>
 
-      {/* Templates */}
-      <div>
-        <h2 className="text-xl font-semibold mb-2">Templates</h2>
-        <div className="space-y-2">
-          {templates.map((t) => (
+  {/* Grid of Template Cards */}
+  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+    {templates.length > 0 ? (
+      templates.map((t) => (
+        <div
+          key={t.id}
+          className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
+        >
+          <div
+            className="p-2 flex-1 overflow-auto"
+            onClick={() => loadTemplate(t)}
+          >
+            <div className="text-sm font-semibold mb-2">{t.name}</div>
+            <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
+
             <div
-              key={t.id}
-              className="border p-3 rounded cursor-pointer hover:bg-gray-100 flex justify-between items-center"
-            >
-              <div onClick={() => loadTemplate(t)}>
-                <div className="font-medium">{t.name}</div>
-                <div className="text-sm text-gray-500">{t.subject}</div>
-              </div>
-              <button
-                onClick={() => deleteTemplate(t.id)}
-                className="text-red-600 hover:underline text-xs"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
+              className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32"
+              dangerouslySetInnerHTML={{ __html: mjml2html(t.mjml).html }}
+            />
+          </div>
+
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              deleteTemplate(t.id);
+            }}
+            className="text-red-600 hover:underline text-xs p-2 text-center border-t"
+          >
+            Delete
+          </button>
         </div>
-      </div>
-    </div>
-  );
-}
+      ))
+    ) : (
+      <div className="text-gray-500">No templates saved yet.</div>
+    )}
+  </div>
+</div>
+
 
