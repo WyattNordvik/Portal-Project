@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import mjml2html from "mjml";
 import { toast } from "react-hot-toast";
 
 type Template = { id: string; name: string; subject: string; mjml: string };
@@ -14,14 +13,15 @@ export default function SendNewsletterPage() {
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [renderedPreviews, setRenderedPreviews] = useState<{ [id: string]: string }>({});
 
+  // Fetch templates and lists
   useEffect(() => {
     fetch("/api/admin/newsletter/templates")
       .then((r) => r.json())
       .then((data) => {
-		  console.log("Templates data:", data);
-	  setTemplates(data);
-	  })
+        setTemplates(data);
+      })
       .catch(() => toast.error("Failed to load templates"));
 
     fetch("/api/newsletter/lists")
@@ -30,6 +30,34 @@ export default function SendNewsletterPage() {
       .catch(() => toast.error("Failed to load lists"));
   }, []);
 
+  // Render previews after templates load
+  useEffect(() => {
+    async function renderAllTemplates() {
+      const previews: { [id: string]: string } = {};
+      for (const template of templates) {
+        try {
+          const res = await fetch("/api/newsletter/render", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ mjml: template.mjml }),
+          });
+          const data = await res.json();
+          if (data.html) {
+            previews[template.id] = data.html;
+          }
+        } catch (err) {
+          console.error("Failed to render template:", err);
+        }
+      }
+      setRenderedPreviews(previews);
+    }
+
+    if (templates.length > 0) {
+      renderAllTemplates();
+    }
+  }, [templates]);
+
+  // Live MJML preview
   useEffect(() => {
     const timeout = setTimeout(async () => {
       if (!mjml.trim()) {
@@ -63,7 +91,7 @@ export default function SendNewsletterPage() {
       if (res.ok) {
         toast.success("Test email sent!");
       } else {
-        throw new Error("Failed to send");
+        throw new Error("Failed to send test email");
       }
     } catch (err) {
       toast.error("Failed to send test");
@@ -132,9 +160,6 @@ export default function SendNewsletterPage() {
     } catch (err) {
       toast.error("Failed to delete");
     }
-  } catch (err) {
-	  toast.error("Failed to delete");
-  }
   };
 
   return (
@@ -216,47 +241,49 @@ export default function SendNewsletterPage() {
           />
         </div>
       </div>
-		
-{/* Templates */}
-<div className="mt-12">
-  <h2 className="text-xl font-semibold mb-4">Templates</h2>
 
-  {/* Grid of Template Cards */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-    {templates.length > 0 ? (
-      templates.map((t) => (
-        <div
-          key={t.id}
-          className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
-        >
-          <div
-            className="p-2 flex-1 overflow-auto"
-            onClick={() => loadTemplate(t)}
-          >
-            <div className="text-sm font-semibold mb-2">{t.name}</div>
-            <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
+      {/* Templates */}
+      <div className="mt-12">
+        <h2 className="text-xl font-semibold mb-4">Templates</h2>
 
-            <div
-              className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32"
-              dangerouslySetInnerHTML={{ __html: mjml2html(t.mjml).html }}
-            />
-          </div>
+        {/* Grid of Template Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {templates.length > 0 ? (
+            templates.map((t) => (
+              <div
+                key={t.id}
+                className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
+              >
+                <div
+                  className="p-2 flex-1 overflow-auto"
+                  onClick={() => loadTemplate(t)}
+                >
+                  <div className="text-sm font-semibold mb-2">{t.name}</div>
+                  <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              deleteTemplate(t.id);
-            }}
-            className="text-red-600 hover:underline text-xs p-2 text-center border-t"
-          >
-            Delete
-          </button>
+                  <div
+                    className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32"
+                    dangerouslySetInnerHTML={{ __html: renderedPreviews[t.id] || "<p>Loading...</p>" }}
+                  />
+                </div>
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    deleteTemplate(t.id);
+                  }}
+                  className="text-red-600 hover:underline text-xs p-2 text-center border-t"
+                >
+                  Delete
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="text-gray-500">No templates saved yet.</div>
+          )}
         </div>
-      ))
-    ) : (
-      <div className="text-gray-500">No templates saved yet.</div>
-    )}
-  </div>
-</div>
-
+      </div>
+    </div>
+  );
+}
 
