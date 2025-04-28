@@ -1,10 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import mjml2html from "mjml";
 import { toast } from "react-hot-toast";
 
-type Template = { id: string; name: string; subject: string; mjml: string };
+type Template = { 
+  id: string; 
+  name: string; 
+  subject: string; 
+  mjml: string; 
+  previewHtml?: string; 
+};
 
 export default function SendNewsletterPage() {
   const [subject, setSubject] = useState("");
@@ -16,15 +21,45 @@ export default function SendNewsletterPage() {
   const [templates, setTemplates] = useState<Template[]>([]);
 
   useEffect(() => {
-    fetch("/api/admin/newsletter/templates")
-      .then((r) => r.json())
-      .then((data) => setTemplates(data))
-      .catch(() => toast.error("Failed to load templates"));
+    async function loadTemplates() {
+      try {
+        const res = await fetch("/api/admin/newsletter/templates");
+        const data = await res.json();
 
-    fetch("/api/newsletter/lists")
-      .then((r) => r.json())
-      .then(setLists)
-      .catch(() => toast.error("Failed to load lists"));
+        const templatesWithHtml = await Promise.all(
+          data.map(async (template: Template) => {
+            const renderRes = await fetch("/api/newsletter/render", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ mjml: template.mjml }),
+            });
+            const renderData = await renderRes.json();
+            return {
+              ...template,
+              previewHtml: renderData.html || "<p>Render error</p>",
+            };
+          })
+        );
+
+        setTemplates(templatesWithHtml);
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to load templates");
+      }
+    }
+
+    async function loadLists() {
+      try {
+        const res = await fetch("/api/newsletter/lists");
+        const data = await res.json();
+        setLists(data);
+      } catch {
+        toast.error("Failed to load lists");
+      }
+    }
+
+    loadTemplates();
+    loadLists();
   }, []);
 
   useEffect(() => {
@@ -62,7 +97,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to send");
       }
-    } catch {
+    } catch (err) {
       toast.error("Failed to send test");
     }
   };
@@ -84,7 +119,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to send");
       }
-    } catch {
+    } catch (err) {
       toast.error("Failed to send");
     }
   };
@@ -105,7 +140,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to save template");
       }
-    } catch {
+    } catch (err) {
       toast.error("Failed to save");
     }
   };
@@ -126,16 +161,16 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to delete");
       }
-    } catch {
+    } catch (err) {
       toast.error("Failed to delete");
     }
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 space-y-8">
       <h1 className="text-2xl font-bold">Send Newsletter</h1>
 
-      {/* Controls - Subject, List, Test Email */}
+      {/* Controls */}
       <div className="space-y-4">
         <div>
           <label className="block mb-1 font-medium">Subject</label>
@@ -171,7 +206,7 @@ export default function SendNewsletterPage() {
             placeholder="Test email address"
             className="border p-2 flex-1"
           />
-          <button onClick={sendTest} className="bg-blue-600 text-white px-3 py-2 rounded hover:bg-blue-700">
+          <button onClick={sendTest} className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
             Send Test
           </button>
         </div>
@@ -193,10 +228,10 @@ export default function SendNewsletterPage() {
         </div>
       </div>
 
-      {/* Editor and Preview */}
-      <div className="grid grid-cols-2 gap-6">
+      {/* Editor + Preview */}
+      <div className="grid grid-cols-2 md:grid-cols-2 gap-6">
         <textarea
-          className="border p-2 w-full h-96 font-mono"
+          className="border p-2 h-96 font-mono"
           placeholder="<mjml>...</mjml>"
           value={mjml}
           onChange={(e) => setMjml(e.target.value)}
@@ -210,25 +245,27 @@ export default function SendNewsletterPage() {
         </div>
       </div>
 
-      {/* Template Thumbnails */}
+      {/* Templates Section */}
       <div className="mt-12">
         <h2 className="text-xl font-semibold mb-4">Templates</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {templates.length > 0 ? (
             templates.map((t) => (
               <div
                 key={t.id}
                 className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
-                onClick={() => loadTemplate(t)}
               >
-                <div className="p-2 text-sm font-semibold">{t.name}</div>
-                <div className="px-2 pb-2 text-xs text-gray-500">{t.subject}</div>
-
                 <div
-                  className="border-t h-32 overflow-hidden scale-75 origin-top"
-                  dangerouslySetInnerHTML={{ __html: mjml2html(t.mjml).html }}
-                />
-
+                  className="p-2 flex-1 overflow-hidden"
+                  onClick={() => loadTemplate(t)}
+                >
+                  <div className="text-sm font-semibold mb-1">{t.name}</div>
+                  <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
+                  <div
+                    className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32 scale-75 origin-top"
+                    dangerouslySetInnerHTML={{ __html: t.previewHtml || "" }}
+                  />
+                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
