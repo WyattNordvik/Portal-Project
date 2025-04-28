@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import mjml2html from "mjml";
 import { toast } from "react-hot-toast";
 
 type Template = { id: string; name: string; subject: string; mjml: string };
@@ -13,15 +14,11 @@ export default function SendNewsletterPage() {
   const [lists, setLists] = useState<{ id: string; name: string }[]>([]);
   const [selectedListId, setSelectedListId] = useState("");
   const [templates, setTemplates] = useState<Template[]>([]);
-  const [renderedPreviews, setRenderedPreviews] = useState<{ [id: string]: string }>({});
 
-  // Fetch templates and lists
   useEffect(() => {
     fetch("/api/admin/newsletter/templates")
       .then((r) => r.json())
-      .then((data) => {
-        setTemplates(data);
-      })
+      .then((data) => setTemplates(data))
       .catch(() => toast.error("Failed to load templates"));
 
     fetch("/api/newsletter/lists")
@@ -30,34 +27,6 @@ export default function SendNewsletterPage() {
       .catch(() => toast.error("Failed to load lists"));
   }, []);
 
-  // Render previews after templates load
-  useEffect(() => {
-    async function renderAllTemplates() {
-      const previews: { [id: string]: string } = {};
-      for (const template of templates) {
-        try {
-          const res = await fetch("/api/newsletter/render", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ mjml: template.mjml }),
-          });
-          const data = await res.json();
-          if (data.html) {
-            previews[template.id] = data.html;
-          }
-        } catch (err) {
-          console.error("Failed to render template:", err);
-        }
-      }
-      setRenderedPreviews(previews);
-    }
-
-    if (templates.length > 0) {
-      renderAllTemplates();
-    }
-  }, [templates]);
-
-  // Live MJML preview
   useEffect(() => {
     const timeout = setTimeout(async () => {
       if (!mjml.trim()) {
@@ -91,9 +60,9 @@ export default function SendNewsletterPage() {
       if (res.ok) {
         toast.success("Test email sent!");
       } else {
-        throw new Error("Failed to send test email");
+        throw new Error("Failed to send");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to send test");
     }
   };
@@ -115,7 +84,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to send");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to send");
     }
   };
@@ -136,7 +105,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to save template");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to save");
     }
   };
@@ -157,7 +126,7 @@ export default function SendNewsletterPage() {
       } else {
         throw new Error("Failed to delete");
       }
-    } catch (err) {
+    } catch {
       toast.error("Failed to delete");
     }
   };
@@ -232,7 +201,6 @@ export default function SendNewsletterPage() {
           value={mjml}
           onChange={(e) => setMjml(e.target.value)}
         />
-
         <div>
           <div
             className="border p-4 bg-white rounded shadow overflow-auto"
@@ -242,30 +210,24 @@ export default function SendNewsletterPage() {
         </div>
       </div>
 
-      {/* Templates */}
+      {/* Template Thumbnails */}
       <div className="mt-12">
         <h2 className="text-xl font-semibold mb-4">Templates</h2>
-
-        {/* Grid of Template Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {templates.length > 0 ? (
             templates.map((t) => (
               <div
                 key={t.id}
                 className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
+                onClick={() => loadTemplate(t)}
               >
-                <div
-                  className="p-2 flex-1 overflow-auto"
-                  onClick={() => loadTemplate(t)}
-                >
-                  <div className="text-sm font-semibold mb-2">{t.name}</div>
-                  <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
+                <div className="p-2 text-sm font-semibold">{t.name}</div>
+                <div className="px-2 pb-2 text-xs text-gray-500">{t.subject}</div>
 
-                  <div
-                    className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32"
-                    dangerouslySetInnerHTML={{ __html: renderedPreviews[t.id] || "<p>Loading...</p>" }}
-                  />
-                </div>
+                <div
+                  className="border-t h-32 overflow-hidden scale-75 origin-top"
+                  dangerouslySetInnerHTML={{ __html: mjml2html(t.mjml).html }}
+                />
 
                 <button
                   onClick={(e) => {
