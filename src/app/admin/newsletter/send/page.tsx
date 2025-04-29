@@ -248,21 +248,21 @@ export default function SendNewsletterPage() {
       {/* Templates Section */}
       <div className="mt-12">
         <h2 className="text-xl font-semibold mb-4">Templates</h2>
-        <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 h-72">
           {templates.length > 0 ? (
             templates.map((t) => (
               <div
                 key={t.id}
-                className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col"
+                className="border rounded shadow hover:shadow-lg cursor-pointer overflow-hidden bg-white flex flex-col max-h-64"
               >
                 <div
                   className="p-2 flex-1 overflow-hidden"
                   onClick={() => loadTemplate(t)}
                 >
-                  <div className="text-sm font-semibold mb-1">{t.name}</div>
+                  <div className="text-sm font-semibold mb-1 truncate">{t.name}</div>
                   <div className="text-xs text-gray-500 mb-2">{t.subject}</div>
                   <div
-                    className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-32 scale-75 origin-top"
+                    className="border rounded bg-gray-50 p-2 overflow-hidden text-xs h-24 scale-75 origin-top"
                     dangerouslySetInnerHTML={{ __html: t.previewHtml || "" }}
                   />
                 </div>

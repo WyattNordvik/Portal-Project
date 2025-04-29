@@ -64,7 +64,7 @@ export default function FooterNav() {
 			
          <li>
 			<Link href="/newsletter/subscribe" className="hover:undelrine">
-				📁 Newsletter
+				📁 Newsletter Sign Up
 			</Link>
 		 </li>
 		 <li>
@@ -79,7 +79,7 @@ export default function FooterNav() {
 		 </li>
 		 <li>
 			<Link href="/admin/newsletter/subscribers" className="hover:underline">
-				├── Newsletter Subscribers
+				├── Newsletter Subscribers List
 			</Link>
 		 </li>
 		 <li>
@@ -87,6 +87,16 @@ export default function FooterNav() {
 				├── Newsletter Tags	
 			</Link>
 		 </li> 
+		 <li>
+		 <Link href="/admin/newsletter/subscribers/new" className="hover:underline">
+				├── Admin Add Subscribers
+		 </Link>
+		 </li>
+		 <li>
+		 <Link href="/admin/newsletter/subscribers/edit" className="hover:underline">
+				├── Admin Edit Subscribers
+		 </Link>
+		 </li>
 		 <li>
 			<Link href="/newsletter/manage" className="hover:underline">
 				└── Manage Subscriptions	

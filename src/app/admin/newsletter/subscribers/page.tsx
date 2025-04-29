@@ -152,7 +152,15 @@ export default function SubscribersPage() {
         <tbody>
           {subs.map((s) => (
             <tr key={s.id} className="border-t">
-              <td className="p-2">{s.name || "—"}</td>
+              <td className="p-2 text-right">
+			    <a
+					href={`/admin/newsletter/subscribers/${s.id}/edit`}
+					className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm"
+				>
+					✏️ 	
+				</a>
+			  </td>
+			  <td className="p-2">{s.name || "—"}</td>
               <td className="p-2">{s.email}</td>
               <td className="p-2">{s.phone || "—"}</td>
               <td className="p-2 space-y-1">
