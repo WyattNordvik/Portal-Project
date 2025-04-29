@@ -1,56 +1,59 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 
+type Tag = { id: string; name: string };
+type List = { id: string; name: string };
 type Subscriber = {
   id: string;
   email: string;
   name: string | null;
   phone: string | null;
-  lists: { id: string; name: string }[];
-  tags: { id: string; name: string }[];
+  lists: List[];
+  tags: Tag[];
 };
-
-type List = { id: string; name: string };
-type Tag = { id: string; name: string };
 
 export default function EditSubscriberPage({ params }: { params: { id: string } }) {
   const router = useRouter();
-  const { id } = params;
+  const { id } = use(params);
 
   const [subscriber, setSubscriber] = useState<Subscriber | null>(null);
   const [lists, setLists] = useState<List[]>([]);
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Form state
-  const [email, setEmail] = useState("");
-  const [name, setName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [selectedListIds, setSelectedListIds] = useState<string[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
-
   useEffect(() => {
     async function fetchData() {
       try {
-        const subRes = await fetch(`/api/admin/newsletter/subscribers/${id}`);
+        const [subRes, listsRes, tagsRes] = await Promise.all([
+          fetch(`/api/admin/newsletter/subscribers/${id}`),
+          fetch("/api/newsletter/lists"),
+          fetch("/api/newsletter/tags"),
+        ]);
+
+        if (!subRes.ok) throw new Error("Failed to fetch subscriber");
+
         const subData = await subRes.json();
-        setSubscriber(subData);
-        setEmail(subData.email || "");
-        setName(subData.name || "");
-        setPhone(subData.phone || "");
-        setSelectedListIds(subData.lists.map((l: any) => l.id));
-        setSelectedTagIds(subData.tags.map((t: any) => t.id));
+        const listsData = await listsRes.json();
+        const tagsData = await tagsRes.json();
 
-        const listsRes = await fetch("/api/newsletter/lists");
-        setLists(await listsRes.json());
+        // 🔥 Fix: transform the subscriber's lists/tags into the correct format
+        setSubscriber({
+          id: subData.id,
+          email: subData.email,
+          name: subData.name,
+          phone: subData.phone,
+          lists: subData.lists.map((l: any) => ({ id: l.id, name: l.name })),
+          tags: subData.tags.map((t: any) => ({ id: t.id, name: t.name })),
+        });
 
-        const tagsRes = await fetch("/api/newsletter/tags");
-        setTags(await tagsRes.json());
+        setLists(listsData);
+        setTags(tagsData);
       } catch (err) {
-        toast.error("Failed to load subscriber data");
+        console.error(err);
+        toast.error("Failed to load data");
       } finally {
         setLoading(false);
       }
@@ -59,128 +62,136 @@ export default function EditSubscriberPage({ params }: { params: { id: string } 
     fetchData();
   }, [id]);
 
-  const toggleList = (listId: string) => {
-    setSelectedListIds((prev) =>
-      prev.includes(listId) ? prev.filter((id) => id !== listId) : [...prev, listId]
-    );
-  };
+  async function save() {
+    if (!subscriber) return;
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTagIds((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
-
-  const saveChanges = async () => {
     try {
-      const res = await fetch(`/api/admin/newsletter/subscribers/${id}/edit`, {
-        method: "PATCH",
+      const res = await fetch(`/api/admin/newsletter/subscribers/${id}`, {
+        method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, phone, listIds: selectedListIds, tagIds: selectedTagIds }),
+        body: JSON.stringify(subscriber),
       });
 
       if (res.ok) {
-        toast.success("Subscriber updated!");
+        toast.success("Subscriber updated");
         router.push("/admin/newsletter/subscribers");
       } else {
-        throw new Error("Update failed");
+        throw new Error();
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to update subscriber");
+      toast.error("Failed to save subscriber");
     }
-  };
-
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
   }
 
-  if (!subscriber) {
-    return <div className="p-6 text-red-600">Subscriber not found</div>;
-  }
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!subscriber) return <div className="p-6">No subscriber found.</div>;
 
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold mb-4">Edit Subscriber</h1>
 
-      {/* Info fields */}
       <div className="space-y-4">
-        <div>
-          <label className="block mb-1 font-medium">Email</label>
-          <input
-            type="email"
-            className="border p-2 w-full"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-          />
-        </div>
-
+        {/* Name */}
         <div>
           <label className="block mb-1 font-medium">Name</label>
           <input
             type="text"
+            value={subscriber.name || ""}
+            onChange={(e) => setSubscriber({ ...subscriber, name: e.target.value })}
             className="border p-2 w-full"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
           />
         </div>
 
+        {/* Email */}
+        <div>
+          <label className="block mb-1 font-medium">Email</label>
+          <input
+            type="email"
+            value={subscriber.email}
+            onChange={(e) => setSubscriber({ ...subscriber, email: e.target.value })}
+            className="border p-2 w-full"
+          />
+        </div>
+
+        {/* Phone */}
         <div>
           <label className="block mb-1 font-medium">Phone</label>
           <input
             type="text"
+            value={subscriber.phone || ""}
+            onChange={(e) => setSubscriber({ ...subscriber, phone: e.target.value })}
             className="border p-2 w-full"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
           />
         </div>
-      </div>
 
-      {/* List and Tag checkboxes */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Lists */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Lists</h2>
-          <div className="space-y-2">
-            {lists.map((list) => (
-              <label key={list.id} className="block">
-                <input
-                  type="checkbox"
-                  className="mr-2"
-                  checked={selectedListIds.includes(list.id)}
-                  onChange={() => toggleList(list.id)}
-                />
-                {list.name}
-              </label>
-            ))}
+          <label className="block mb-1 font-medium">Lists</label>
+          <div className="flex flex-wrap gap-2">
+            {lists.map((list) => {
+              const selected = subscriber.lists.some((l) => l.id === list.id);
+              return (
+                <button
+                  key={list.id}
+                  onClick={() => {
+                    setSubscriber({
+                      ...subscriber,
+                      lists: selected
+                        ? subscriber.lists.filter((l) => l.id !== list.id)
+                        : [...subscriber.lists, list],
+                    });
+                  }}
+                  className={`px-3 py-1 rounded-full border ${
+                    selected
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {list.name}
+                </button>
+              );
+            })}
           </div>
         </div>
 
+        {/* Tags */}
         <div>
-          <h2 className="text-lg font-semibold mb-2">Tags</h2>
-          <div className="space-y-2">
-            {tags.map((tag) => (
-              <label key={tag.id} className="block">
-                <input
-                  type="checkbox"
-                  className="mr-2"
-                  checked={selectedTagIds.includes(tag.id)}
-                  onChange={() => toggleTag(tag.id)}
-                />
-                {tag.name}
-              </label>
-            ))}
+          <label className="block mb-1 font-medium">Tags</label>
+          <div className="flex flex-wrap gap-2">
+            {tags.map((tag) => {
+              const selected = subscriber.tags.some((t) => t.id === tag.id);
+              return (
+                <button
+                  key={tag.id}
+                  onClick={() => {
+                    setSubscriber({
+                      ...subscriber,
+                      tags: selected
+                        ? subscriber.tags.filter((t) => t.id !== tag.id)
+                        : [...subscriber.tags, tag],
+                    });
+                  }}
+                  className={`px-3 py-1 rounded-full border ${
+                    selected
+                      ? "bg-green-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {tag.name}
+                </button>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* Save button */}
-      <button
-        onClick={saveChanges}
-        className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-      >
-        Save Changes
-      </button>
+        {/* Save Button */}
+        <button
+          onClick={save}
+          className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
+        >
+          Save Changes
+        </button>
+      </div>
     </div>
   );
 }
-
