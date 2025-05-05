@@ -10,43 +10,46 @@ generator client {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
+  id           String     @id @default(cuid())
+  email        String     @unique
   name         String?
   passwordHash String
-  createdAt    DateTime @default(now())
-  roles		   UserRole[]
+  createdAt    DateTime   @default(now())
+  roles        UserRole[]
+
+  threads Thread[] @relation("UserThreads")
+  replies Reply[]  @relation("UserReplies")
 }
 
 model Role {
-	id			String	@id @default(cuid())
-	name		String  @unique
-	users		UserRole[]
+  id    String     @id @default(cuid())
+  name  String     @unique
+  users UserRole[]
 }
 
 model UserRole {
-	userId		String
-	roleId		String
-	User		User @relation(fields: [userId], references: [id])
-	role		Role @relation(fields: [roleId], references: [id])
+  userId String
+  roleId String
+  User   User   @relation(fields: [userId], references: [id])
+  role   Role   @relation(fields: [roleId], references: [id])
 
-	@@id([userId, roleId])
+  @@id([userId, roleId])
 }
 
 model File {
-	id			String	@id @default(cuid())
-	filename	String
-	url			String
-	uploadedBy	String
-	createdAt	DateTime @default(now())
+  id         String   @id @default(cuid())
+  filename   String
+  url        String
+  uploadedBy String
+  createdAt  DateTime @default(now())
 }
 
 model AnalyticsEvent {
-	id			String	@id @default(cuid())
-	userId		String
-	action		String
-	metadata	Json?
-	createdAt	DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  metadata  Json?
+  createdAt DateTime @default(now())
 }
 
 model Event {
@@ -60,22 +63,22 @@ model Event {
 }
 
 model Notification {
-  id         String   @id @default(cuid())
-  userId     String
-  type       String   // e.g. "file_upload", "event_created"
-  message    String
-  isRead     Boolean  @default(false)
-  metadata   Json?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  userId    String
+  type      String // e.g. "file_upload", "event_created"
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
 
   @@index([userId, isRead])
 }
 
 model AuditLog {
   id        String   @id @default(cuid())
-  userId    String   /// who performed the action
-  action    String   /// e.g. "bulk_import", "user_created", "role_updated"
-  metadata  Json?    /// any extra data (e.g. count of users imported)
+  userId    String /// who performed the action
+  action    String /// e.g. "bulk_import", "user_created", "role_updated"
+  metadata  Json? /// any extra data (e.g. count of users imported)
   createdAt DateTime @default(now())
 
   @@index([userId, createdAt])
@@ -90,34 +93,34 @@ model NewsletterList {
 }
 
 model Subscriber {
-  id            String         @id @default(cuid())
-  email         String         @unique
+  id            String          @id @default(cuid())
+  email         String          @unique
   name          String?
   phone         String?
-  createdAt     DateTime       @default(now())
+  createdAt     DateTime        @default(now())
   subscriptions Subscription[] // back-relation to Subscription
-  tags          SubscriberTag[] 
+  tags          SubscriberTag[]
 }
 
 model Subscription {
-  id               String              @id @default(cuid())
-  subscriberId     String
-  listId           String
-  status           SubscriptionStatus  @default(PENDING)
-  confirmToken     String?			   @unique
-  subscribedAt     DateTime?
-  confirmedAt      DateTime?
-  unsubscribedAt   DateTime?
+  id             String             @id @default(cuid())
+  subscriberId   String
+  listId         String
+  status         SubscriptionStatus @default(PENDING)
+  confirmToken   String?            @unique
+  subscribedAt   DateTime?
+  confirmedAt    DateTime?
+  unsubscribedAt DateTime?
 
   subscriber Subscriber     @relation(fields: [subscriberId], references: [id])
-  list       NewsletterList @relation(fields: [listId],     references: [id])
+  list       NewsletterList @relation(fields: [listId], references: [id])
 
   @@unique([subscriberId, listId])
 }
 
 model Tag {
-  id             String            @id @default(cuid())
-  name           String            @unique
+  id             String          @id @default(cuid())
+  name           String          @unique
   subscriberTags SubscriberTag[]
 }
 
@@ -126,7 +129,7 @@ model SubscriberTag {
   tagId        String
 
   subscriber Subscriber @relation(fields: [subscriberId], references: [id])
-  tag        Tag        @relation(fields: [tagId],        references: [id])
+  tag        Tag        @relation(fields: [tagId], references: [id])
 
   @@id([subscriberId, tagId])
 }
@@ -138,10 +141,41 @@ enum SubscriptionStatus {
 }
 
 model NewsletterTemplate {
-	id		String	@id @default(cuid())
-	name	String
-	subject	String
-	mjml	String
-	createdAt	DateTime	@default(now())
+  id        String   @id @default(cuid())
+  name      String
+  subject   String
+  mjml      String
+  createdAt DateTime @default(now())
 }
 
+model ForumChannel {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  threads   Thread[]
+  createdAt DateTime @default(now())
+}
+
+model Thread {
+  id             String   @id @default(cuid())
+  forumChannelId String
+  authorId       String
+  title          String
+  content        String
+  createdAt      DateTime @default(now())
+
+  channel ForumChannel @relation(fields: [forumChannelId], references: [id])
+  author  User         @relation("UserThreads", fields: [authorId], references: [id])
+  replies Reply[]
+}
+
+model Reply {
+  id        String   @id @default(cuid())
+  threadId  String
+  authorId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  thread Thread @relation(fields: [threadId], references: [id])
+  author User   @relation("UserReplies", fields: [authorId], references: [id])
+}
