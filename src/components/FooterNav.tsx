@@ -102,6 +102,11 @@ export default function FooterNav() {
 				└── Manage Subscriptions	
 			</Link>
 		 </li>
+		 <li>
+			<Link href="/forum" className="hover:underline">
+				Forum
+			</Link>
+		 </li>
       </ul>
     </nav>
   );

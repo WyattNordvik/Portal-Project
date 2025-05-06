@@ -1,3 +1,4 @@
+
 // src/app/forum/page.tsx
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
